@@ -24,6 +24,11 @@ frontend/src/
   data/           Architecture data (nodes.ts, edges.ts, annotations.ts)
   types.ts        Shared TypeScript types
   index.css       Tailwind v4 + React Flow dark theme overrides
+tofu/             OpenTofu IaC — SWA (Free), DNS CNAME (docs.romaine.life), custom domain
+.github/workflows/
+  full-stack-deploy.yml   Build + deploy frontend to SWA on push to frontend/
+  tofu.yml                Plan on PR, apply on merge to tofu/
+  lint.yml                ESLint on PR
 ```
 
 ## Architecture Data
@@ -51,3 +56,7 @@ To add a new app or infra component: add a node in nodes.ts, wire edges in edges
 - App filtering: click an app name to highlight its path through infrastructure, dimming unrelated nodes to 15% opacity. URL-routed at /:app for shareability.
 - Detail panel: click any node for narrative annotations explaining the "why" behind architectural decisions (e.g., why a single always-on Container App instead of consumption-plan functions, why Cloudflare Tunnel for the Pi).
 - Dark slate theme with category color coding: purple (apps), blue (shared), orange (external), green (infra).
+- Added OpenTofu infrastructure: Azure SWA (Free tier), DNS CNAME record (`docs.romaine.life`), custom domain with managed certificate. Frontend-only — no backend, database, or auth resources.
+- Added CI/CD workflows following the pipeline-templates pattern: `full-stack-deploy.yml` (build + deploy on push to `frontend/`), `tofu.yml` (plan/apply), `lint.yml` (ESLint on PR).
+- Added to infra-bootstrap app module `for_each` list — creates GitHub repo, Azure AD app registration, OIDC credentials, and GitHub Actions variables.
+- Deployed live at `docs.romaine.life`.
