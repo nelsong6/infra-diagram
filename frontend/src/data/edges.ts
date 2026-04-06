@@ -79,12 +79,29 @@ export const edges: InfraEdge[] = [
   },
 
   // ── Auth apps → Entra ID ────────────────────────────────────
-  ...['plant-agent', 'kill-me', 'investing', 'lights', 'my-homepage'].map((app) => ({
+  ...['plant-agent', 'kill-me', 'investing', 'lights'].map((app) => ({
     id: `${app}-entra`,
     source: app,
     target: 'entra',
     style: EXTERNAL_STYLE,
   })),
+
+  // ── my-homepage device auth ────────────────────────────────
+  {
+    id: 'client-devices-api',
+    source: 'client-devices',
+    target: 'api',
+    style: EXTERNAL_STYLE,
+    animated: true,
+    label: 'auth',
+  },
+  {
+    id: 'client-devices-homepage',
+    source: 'client-devices',
+    target: 'my-homepage',
+    style: EXTERNAL_STYLE,
+    label: 'JWT',
+  },
 
   // ── plant-agent external connections ────────────────────────
   {

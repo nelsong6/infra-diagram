@@ -203,7 +203,7 @@ export const nodes: InfraNode[] = [
       description: 'MSAL.js auth → self-signed JWT (7-day). Admin email: nelson-devops-project@outlook.com.',
       icon: 'Shield',
       category: 'external',
-      apps: ['plant-agent', 'kill-me', 'investing', 'lights', 'my-homepage'],
+      apps: ['plant-agent', 'kill-me', 'investing', 'lights'],
     },
   },
   {
@@ -220,9 +220,21 @@ export const nodes: InfraNode[] = [
     },
   },
   {
-    id: 'blob-storage',
+    id: 'client-devices',
     type: 'infra',
     position: { x: COL.center, y: ROW.external },
+    data: {
+      label: 'Client Devices',
+      description: 'Local machines (Win/Mac/Linux) with CLI auth tool — TPM/Secure Enclave key pairs tied to OS login.',
+      icon: 'Monitor',
+      category: 'external',
+      apps: ['my-homepage'],
+    },
+  },
+  {
+    id: 'blob-storage',
+    type: 'infra',
+    position: { x: COL.midRight, y: ROW.external },
     data: {
       label: 'Azure Blob Storage',
       description: 'Stores plant photos uploaded by the Raspberry Pi.',
@@ -234,7 +246,7 @@ export const nodes: InfraNode[] = [
   {
     id: 'claude',
     type: 'infra',
-    position: { x: COL.midRight, y: ROW.external },
+    position: { x: COL.right, y: ROW.external },
     data: {
       label: 'Claude Haiku API',
       description: 'Anthropic API — vision-based plant ID and health analysis.',

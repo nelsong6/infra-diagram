@@ -54,7 +54,9 @@ Has both a public unauthenticated mode and an admin mode (MSAL). Cosmos DB (Ligh
   'my-homepage': {
     nodeId: 'my-homepage',
     title: 'my-homepage',
-    body: `A personal bookmark manager. Uses both MSAL (Microsoft sign-in) and a local username/password auth option. Backend at /homepage, data in Cosmos DB (HomepageDB, userdata container).`,
+    body: `A personal bookmark manager with a fzt WASM terminal for navigation. Terminal-based authentication — a CLI tool on the local machine signs a challenge using platform-bound keys (TPM / Secure Enclave), tied to the OS user account. The shared API verifies the signature and issues a 7-day JWT. The CLI hands the JWT to the browser — no login UI in the app.
+
+Backend at /homepage, data in Cosmos DB (HomepageDB, userdata container).`,
     links: [
       { label: 'GitHub', url: 'https://github.com/nelsong6/my-homepage' },
       { label: 'Live', url: 'https://homepage.romaine.life' },
@@ -96,7 +98,7 @@ Created and managed by infra-bootstrap via OpenTofu.`,
     title: 'Shared API (api.romaine.life)',
     body: `A consolidated Express.js backend running as an always-on Azure Container App (0.25 vCPU / 0.5 Gi). This eliminates the 30+ second cold starts that plague consumption-plan functions.
 
-Each app mounts its route package under a path prefix: /plant, /workout, /homepage, /investing. Shared Microsoft auth via MSAL.js redirect flow produces a self-signed JWT (7-day expiry).
+Each app mounts its route package under a path prefix: /plant, /workout, /homepage, /investing. Two auth flows: MSAL.js redirect (most apps) and device-based challenge/response (my-homepage). Both produce a self-signed JWT with 7-day expiry.
 
 The decision to consolidate was driven by cost — a single always-on container is cheaper than multiple consumption-plan backends, and the latency improvement is dramatic.`,
   },
@@ -142,7 +144,9 @@ All containers use /userId as the partition key. The free tier provides 1000 RU/
   entra: {
     nodeId: 'entra',
     title: 'Microsoft Entra ID',
-    body: `All apps that need authentication use MSAL.js (Microsoft Authentication Library) with the redirect flow. After Microsoft sign-in, the shared API issues a self-signed JWT with a 7-day expiry.
+    body: `Most apps use MSAL.js (Microsoft Authentication Library) with the redirect flow. After Microsoft sign-in, the shared API issues a self-signed JWT with a 7-day expiry.
+
+my-homepage has migrated to device-based auth (CLI + platform keys) and no longer uses Entra ID.
 
 The admin email (nelson-devops-project@outlook.com) is the only authorized user for write operations.`,
   },
@@ -175,6 +179,14 @@ Uses the cheapest Claude model (Haiku) since the vision task is straightforward 
     body: `A local smart home hub at 192.168.50.130. The lights app communicates directly with the hub's Maker API over the local network — no cloud dependency.
 
 Controls the "Living room - All" group dimmer (device 96) and other devices. The local-only design means lights work even if the internet is down.`,
+  },
+
+  'client-devices': {
+    nodeId: 'client-devices',
+    title: 'Client Devices',
+    body: `Local machines (Windows, macOS, Ubuntu) running a CLI auth tool. Each device has a key pair in the platform's secure hardware store (Windows Hello/TPM, macOS Secure Enclave). The private key is bound to the OS user account — it can only be used when logged in as that user.
+
+One-time setup per machine: generate a key pair and register the public key with the API. After that, authentication is automatic — the CLI signs a challenge from the API, proving the user holds the private key without ever transmitting it.`,
   },
 
   'github-actions': {
