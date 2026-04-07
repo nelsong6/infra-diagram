@@ -116,6 +116,12 @@ export default function FztSharedView() {
         >
           matrix &rarr;
         </Link>
+        <Link
+          to="/fzt/final"
+          className="text-xs text-amber-500/70 hover:text-amber-400 transition-colors"
+        >
+          final &rarr;
+        </Link>
         {hoveredTool && (
           <span className="text-xs text-amber-400/80 font-mono">
             {fztSharedNodes.find((n) => n.id === hoveredTool)?.data?.label ?? ''}

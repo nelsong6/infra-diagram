@@ -9,6 +9,7 @@ import FztReposView from './components/FztReposView'
 import FztSharedView from './components/FztSharedView'
 import FztToolPage from './components/FztToolPage'
 import FztMatrixView from './components/FztMatrixView'
+import FztFinalView from './components/FztFinalView'
 import type { AppName } from './types'
 import { APP_NAMES } from './types'
 
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/fzt/shared" element={<FztSharedView />} />
         <Route path="/fzt/tool/:tool" element={<FztToolPage />} />
         <Route path="/fzt/matrix" element={<FztMatrixView />} />
+        <Route path="/fzt/final" element={<FztFinalView />} />
         <Route path="/emotions" element={<EmotionsView />} />
         <Route path="/:app" element={<DiagramPage />} />
       </Routes>
