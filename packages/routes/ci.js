@@ -452,24 +452,6 @@ export function createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey
     res.status(200).json({ received: true, repoName, version });
   });
 
-  // ── Deploy report — consumer sites report their live versions ──
-
-  router.post('/deployed', (req, res) => {
-    const { site, repo, versions: deployedVers } = req.body;
-    if (!site || !repo) {
-      return res.status(400).json({ error: 'Missing site or repo' });
-    }
-
-    const deployed = {
-      site,
-      repo,
-      versions: deployedVers || {},
-      reportedAt: new Date().toISOString(),
-    };
-    deployedVersions.set(repo, deployed);
-    broadcast('deployed', deployed);
-    res.status(200).json({ received: true, repo });
-  });
 
   // ── SSE endpoint ──────────────────────────────────────────────
 
