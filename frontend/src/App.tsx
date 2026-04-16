@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-rout
 import DiagramView from './components/DiagramView'
 import PipelineView from './components/PipelineView'
 import CIDashboardView from './components/CIDashboardView'
+import NavSidebar from './components/NavSidebar'
 import EmotionsView from './components/EmotionsView'
 import FztArchView from './components/FztArchView'
 import FztProposedView from './components/FztProposedView'
@@ -34,6 +35,7 @@ function DiagramPage() {
 export default function App() {
   return (
     <BrowserRouter>
+      <NavSidebar />
       <Routes>
         <Route path="/" element={<DiagramPage />} />
         <Route path="/pipelines" element={<PipelineView />} />
