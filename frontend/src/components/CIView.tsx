@@ -140,7 +140,7 @@ export default function CIView({ title, repos, edges: edgeDefs }: CIViewProps) {
         </button>
       </div>
 
-      <div className="absolute bottom-4 left-4 z-10 flex gap-3 text-[10px] text-slate-400">
+      <div className="absolute bottom-4 left-24 z-10 flex gap-3 text-[10px] text-slate-400">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: '#22c55e' }} /> success
         </span>
