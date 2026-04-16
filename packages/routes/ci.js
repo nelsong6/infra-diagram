@@ -339,6 +339,19 @@ export function createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey
       });
 
       await Promise.all([...packageFetches, ...releaseFetches, ...siteFetches]);
+
+      // Extract Go dependencies from go.mod at the latest release tag
+      const goDepFetches = Object.entries(GO_DEPS).map(async ([repo, deps]) => {
+        const ver = versions.get(repo);
+        if (!ver) return;
+        try {
+          await extractGoModVersions(repo, ver.version, deps);
+        } catch (err) {
+          console.error(`[ci] go.mod backfill failed for ${repo}:`, err.message);
+        }
+      });
+      await Promise.all(goDepFetches);
+
       console.log(`[ci] Backfilled ${versions.size} published versions, ${deployedVersions.size} deployed versions`);
     })();
 
