@@ -51,10 +51,10 @@ export function useELKLayout(
         id: node.id,
         width: NODE_WIDTH,
         height: NODE_HEIGHT,
-        properties: { 'elk.portConstraints': 'FIXED_SIDE' },
+        layoutOptions: { 'org.eclipse.elk.portConstraints': 'FIXED_ORDER' },
         ports: [
-          { id: `${node.id}-south`, properties: { 'elk.port.side': 'SOUTH' } },
-          { id: `${node.id}-north`, properties: { 'elk.port.side': 'NORTH' } },
+          { id: `${node.id}-south`, layoutOptions: { 'org.eclipse.elk.port.side': 'SOUTH' } },
+          { id: `${node.id}-north`, layoutOptions: { 'org.eclipse.elk.port.side': 'NORTH' } },
         ],
       })),
       edges: inputEdges.map((edge) => ({

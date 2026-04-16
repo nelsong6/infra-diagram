@@ -58,7 +58,7 @@ function CIPipelineNodeComponent({ data }: NodeProps) {
       <Handle type="source" position={Position.Left} id="left-src" className="!bg-transparent !border-0" />
       <Handle type="target" position={Position.Left} id="left-tgt" className="!bg-transparent !border-0" />
       <div
-        className={`rounded-lg px-4 py-3 border-2 min-w-[180px] transition-all duration-500 ${
+        className={`rounded-lg px-4 py-3 border-2 min-w-[180px] min-h-[100px] transition-all duration-500 ${
           status === 'in_progress' ? 'animate-pulse' : ''
         }`}
         style={{
