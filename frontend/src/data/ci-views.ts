@@ -35,13 +35,15 @@ export const apiLayout: RepoPosition[] = [
 ]
 
 export const apiEdges: DispatchEdge[] = [
-  ['my-homepage', 'api'],
-  ['fzt-terminal', 'api'],
-  ['infra-diagram', 'api'],
-  ['kill-me', 'api'],
-  ['plant-agent', 'api'],
-  ['investing', 'api'],
-  ['house-hunt', 'api'],
+  // Top row → api: route via right/left handles to avoid middle row
+  ['my-homepage', 'api', 'right-src', 'left-tgt'],
+  ['fzt-terminal', 'api', 'bottom-src', 'top-tgt'],
+  ['infra-diagram', 'api', 'left-src', 'right-tgt'],
+  // Middle row → api: straight down, no obstacles
+  ['kill-me', 'api', 'bottom-src', 'top-tgt'],
+  ['plant-agent', 'api', 'bottom-src', 'top-tgt'],
+  ['investing', 'api', 'bottom-src', 'top-tgt'],
+  ['house-hunt', 'api', 'bottom-src', 'top-tgt'],
 ]
 
 // ── tofu view ───────────────────────────────────────────────

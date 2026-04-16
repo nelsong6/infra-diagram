@@ -15,7 +15,8 @@ import type { CIRun, ConnectionStatus } from '../types/ci'
 const nodeTypes = { ci: CIPipelineNodeComponent }
 
 export type RepoPosition = { id: string; x: number; y: number }
-export type DispatchEdge = [string, string]
+// [source, target] or [source, target, sourceHandle, targetHandle]
+export type DispatchEdge = [string, string] | [string, string, string, string]
 
 interface CIViewProps {
   title: string
@@ -37,7 +38,8 @@ function buildNodes(layout: RepoPosition[], runsByRepo: Map<string, CIRun[]>): N
 }
 
 function buildEdges(chains: DispatchEdge[], runsByRepo: Map<string, CIRun[]>): Edge[] {
-  return chains.map(([src, dst]) => {
+  return chains.map((edge) => {
+    const [src, dst, srcHandle, tgtHandle] = edge
     const srcRuns = runsByRepo.get(src) || []
     const dstRuns = runsByRepo.get(dst) || []
     const srcActive = srcRuns.some(r => r.status === 'in_progress' || r.status === 'queued')
@@ -48,8 +50,8 @@ function buildEdges(chains: DispatchEdge[], runsByRepo: Map<string, CIRun[]>): E
       id: `${src}->${dst}`,
       source: src,
       target: dst,
-      sourceHandle: 'bottom-src',
-      targetHandle: 'top-tgt',
+      sourceHandle: srcHandle || 'bottom-src',
+      targetHandle: tgtHandle || 'top-tgt',
       type: 'smoothstep',
       animated: cascading,
       style: {

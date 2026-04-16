@@ -54,6 +54,8 @@ function CIPipelineNodeComponent({ data }: NodeProps) {
       <Handle type="source" position={Position.Bottom} id="bottom-src" className="!bg-transparent !border-0" />
       <Handle type="target" position={Position.Bottom} id="bottom-tgt" className="!bg-transparent !border-0" />
       <Handle type="source" position={Position.Right} id="right-src" className="!bg-transparent !border-0" />
+      <Handle type="target" position={Position.Right} id="right-tgt" className="!bg-transparent !border-0" />
+      <Handle type="source" position={Position.Left} id="left-src" className="!bg-transparent !border-0" />
       <Handle type="target" position={Position.Left} id="left-tgt" className="!bg-transparent !border-0" />
       <div
         className={`rounded-lg px-4 py-3 border-2 min-w-[180px] transition-all duration-500 ${
