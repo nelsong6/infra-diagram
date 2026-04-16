@@ -29,9 +29,7 @@ const CONTAINER_PADDING_TOP = 40
 const CONTAINER_PADDING_BOTTOM = 20
 const ROW_GAP = 80
 
-// Top tier publishes engine, middle tier publishes releases
-const PUBLISHER_REPOS = ['fzt', 'fzt-terminal'] as const
-// Bottom tier consumers
+// Bottom tier consumers of fzt-terminal releases
 const CONSUMER_REPOS = ['my-homepage', 'fzt-showcase', 'picker'] as const
 
 function buildLayout(
@@ -43,71 +41,95 @@ function buildLayout(
   const nodes: Node[] = []
   const edges: Edge[] = []
 
-  // ── Publisher nodes (top two rows) ──
-  const publisherHeights = PUBLISHER_REPOS.map((repo) => {
-    const runs = runsByRepo.get(repo) || []
-    const pub = versions.get(repo)
-    const dep = deployed.get(repo)
-    const err = versionErrors[repo]
-    return estimateNodeHeight(runs, !!(pub || dep), !!err)
-  })
-
-  // Center publishers horizontally relative to the consumer row
+  const packageNodeHeight = 44
+  const containerHeight = CONTAINER_PADDING_TOP + packageNodeHeight + CONTAINER_PADDING_BOTTOM
   const consumerCount = CONSUMER_REPOS.length
   const consumerContainerWidth = NODE_WIDTH + CONTAINER_PADDING_X * 2
   const totalConsumerWidth = consumerCount * consumerContainerWidth + (consumerCount - 1) * NODE_SPACING
-  const publisherX = (totalConsumerWidth - NODE_WIDTH) / 2
 
-  let currentY = 0
-  for (let i = 0; i < PUBLISHER_REPOS.length; i++) {
-    const repo = PUBLISHER_REPOS[i]
-    const runs = runsByRepo.get(repo) || []
-    const pub = versions.get(repo)
-    const dep = deployed.get(repo)
-    const err = versionErrors[repo]
-    nodes.push({
-      id: repo,
-      type: 'ci',
-      position: { x: publisherX, y: currentY },
-      style: { width: NODE_WIDTH },
-      data: {
-        label: repo,
-        repoName: repo,
-        runs,
-        nodeHeight: publisherHeights[i],
-        publishedVersion: pub,
-        deployedVersion: dep,
-        versionError: err,
-      } satisfies CINodeData,
-    })
-    currentY += publisherHeights[i] + ROW_GAP
-  }
-
-  // Edge: fzt → fzt-terminal
+  // ── fzt (top, pipeline node — publishes engine) ──
   const fztRuns = runsByRepo.get('fzt') || []
-  const fztTermRuns = runsByRepo.get('fzt-terminal') || []
+  const fztPub = versions.get('fzt')
+  const fztDep = deployed.get('fzt')
+  const fztErr = versionErrors['fzt']
+  const fztHeight = estimateNodeHeight(fztRuns, !!(fztPub || fztDep), !!fztErr)
   const fztActive = fztRuns.some(r => r.status === 'in_progress' || r.status === 'queued')
-  const fztTermActive = fztTermRuns.some(r => r.status === 'in_progress' || r.status === 'queued')
 
+  // Center fzt above fzt-terminal container
+  const fztTermContainerWidth = consumerContainerWidth
+  const fztX = (totalConsumerWidth - NODE_WIDTH) / 2
+
+  nodes.push({
+    id: 'fzt',
+    type: 'ci',
+    position: { x: fztX, y: 0 },
+    style: { width: NODE_WIDTH },
+    data: {
+      label: 'fzt',
+      repoName: 'fzt',
+      runs: fztRuns,
+      nodeHeight: fztHeight,
+      publishedVersion: fztPub,
+      deployedVersion: fztDep,
+      versionError: fztErr,
+    } satisfies CINodeData,
+  })
+
+  // ── fzt-terminal (middle, container — consumes fzt engine, publishes releases) ──
+  const fztTermRuns = runsByRepo.get('fzt-terminal') || []
+  const fztTermActive = fztTermRuns.some(r => r.status === 'in_progress' || r.status === 'queued')
+  const fztTermY = fztHeight + ROW_GAP
+  const fztTermX = (totalConsumerWidth - fztTermContainerWidth) / 2
+
+  nodes.push({
+    id: 'fzt-terminal',
+    type: 'fzt-consumer',
+    position: { x: fztTermX, y: fztTermY },
+    data: {
+      label: 'fzt-terminal',
+      containerWidth: fztTermContainerWidth,
+      containerHeight,
+      runs: fztTermRuns,
+    },
+    style: { width: fztTermContainerWidth, height: containerHeight },
+  })
+
+  // Package node inside fzt-terminal showing consumed fzt engine version
+  const fztTermDeployed = deployed.get('fzt-terminal')
+  const consumedFztVersion = fztTermDeployed?.versions?.fzt
+
+  nodes.push({
+    id: 'pkg-fzt-terminal',
+    type: 'fzt-package',
+    parentId: 'fzt-terminal',
+    extent: 'parent' as const,
+    position: { x: CONTAINER_PADDING_X, y: CONTAINER_PADDING_TOP },
+    style: { width: PACKAGE_NODE_WIDTH },
+    data: {
+      label: 'fzt',
+      deployedVersion: consumedFztVersion,
+    },
+  })
+
+  // Edge: fzt → package node inside fzt-terminal
+  const fztToTermCascading = fztActive || fztTermActive
   edges.push({
-    id: 'fzt->fzt-terminal',
+    id: 'fzt->pkg-fzt-terminal',
     source: 'fzt',
     sourceHandle: 'bottom-src',
-    target: 'fzt-terminal',
+    target: 'pkg-fzt-terminal',
     targetHandle: 'top-tgt',
     type: 'straight',
-    animated: fztActive || fztTermActive,
+    animated: fztToTermCascading,
     style: {
-      stroke: (fztActive || fztTermActive) ? '#f59e0b' : '#334155',
-      strokeWidth: (fztActive || fztTermActive) ? 2 : 1,
-      opacity: (fztActive || fztTermActive) ? 1 : 0.4,
+      stroke: fztToTermCascading ? '#f59e0b' : '#334155',
+      strokeWidth: fztToTermCascading ? 2 : 1,
+      opacity: fztToTermCascading ? 1 : 0.4,
     },
   })
 
   // ── Consumer containers (bottom row) ──
-  const packageNodeHeight = 44
-  const containerHeight = CONTAINER_PADDING_TOP + packageNodeHeight + CONTAINER_PADDING_BOTTOM
-  const consumerY = currentY
+  const consumerY = fztTermY + containerHeight + ROW_GAP
 
   for (let i = 0; i < consumerCount; i++) {
     const repo = CONSUMER_REPOS[i]
@@ -116,7 +138,6 @@ function buildLayout(
     const pkgId = `pkg-${repo}`
     const containerX = i * (consumerContainerWidth + NODE_SPACING)
 
-    // Container node (dashed border with pipeline status)
     nodes.push({
       id: containerId,
       type: 'fzt-consumer',
@@ -130,7 +151,6 @@ function buildLayout(
       style: { width: consumerContainerWidth, height: containerHeight },
     })
 
-    // Package node inside container showing consumed fzt-terminal version
     const dep = deployed.get(repo)
     const consumedVersion = dep?.versions?.fztTerminal
 
@@ -147,7 +167,7 @@ function buildLayout(
       },
     })
 
-    // Edge: fzt-terminal → package node inside consumer
+    // Edge: fzt-terminal container → package node inside consumer
     const consumerActive = runs.some(r => r.status === 'in_progress' || r.status === 'queued')
     const cascading = fztTermActive || consumerActive
 

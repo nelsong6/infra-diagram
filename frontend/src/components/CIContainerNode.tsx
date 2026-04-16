@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { type NodeProps } from '@xyflow/react'
+import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { CIRun } from '../types/ci'
 
 export interface CIContainerData {
@@ -55,6 +55,8 @@ function CIContainerNodeComponent({ data }: NodeProps) {
       }}
       className="px-4 pt-3"
     >
+      <Handle type="source" position={Position.Bottom} id="bottom-src" className="!bg-transparent !border-0" />
+      <Handle type="target" position={Position.Top} id="top-tgt" className="!bg-transparent !border-0" />
       <div className="flex items-center gap-2">
         <span className="text-sm font-bold text-slate-400">{d.label}</span>
         {latestRun && (
