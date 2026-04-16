@@ -15,20 +15,55 @@ import type { CIRun, ConnectionStatus } from '../types/ci'
 
 const nodeTypes = { ci: CIPipelineNodeComponent }
 
-// All repos that have CI — positions laid out as a grid
-const REPOS = [
-  'fzt', 'fzt-terminal', 'my-homepage', 'fzt-showcase',
-  'api', 'infra-bootstrap', 'infra-diagram', 'kill-me',
-  'plant-agent', 'investing', 'house-hunt', 'picker',
-  'landing-page', 'emotions-mcp',
+// Layout: dispatch flow top-to-bottom
+//
+//   Row 0: fzt (engine — upstream of everything)
+//   Row 1: fzt-terminal (consumes fzt, dispatches to row 2)
+//   Row 2: my-homepage, fzt-showcase, infra-diagram (consume fzt-terminal assets)
+//   Row 3: kill-me, plant-agent, investing, house-hunt (app repos, dispatch routes to api)
+//   Row 4: api (receives dispatches from all app repos above)
+//   Row 5: infra-bootstrap, picker, landing-page, emotions-mcp (independent)
+
+const COL_W = 260
+const ROW_H = 160
+
+type RepoPosition = { id: string; x: number; y: number }
+
+const LAYOUT: RepoPosition[] = [
+  // Row 0 — engine
+  { id: 'fzt', x: COL_W * 1.5, y: 0 },
+
+  // Row 1 — ecosystem layer
+  { id: 'fzt-terminal', x: COL_W * 1.5, y: ROW_H },
+
+  // Row 2 — fzt-terminal consumers
+  { id: 'my-homepage', x: 0, y: ROW_H * 2 },
+  { id: 'fzt-showcase', x: COL_W * 1.5, y: ROW_H * 2 },
+  { id: 'infra-diagram', x: COL_W * 3, y: ROW_H * 2 },
+
+  // Row 3 — app repos (dispatch routes → api)
+  { id: 'kill-me', x: 0, y: ROW_H * 3 },
+  { id: 'plant-agent', x: COL_W, y: ROW_H * 3 },
+  { id: 'investing', x: COL_W * 2, y: ROW_H * 3 },
+  { id: 'house-hunt', x: COL_W * 3, y: ROW_H * 3 },
+
+  // Row 4 — shared API (receives all dispatches)
+  { id: 'api', x: COL_W * 1.5, y: ROW_H * 4 },
+
+  // Row 5 — independent repos
+  { id: 'infra-bootstrap', x: 0, y: ROW_H * 5.5 },
+  { id: 'picker', x: COL_W, y: ROW_H * 5.5 },
+  { id: 'landing-page', x: COL_W * 2, y: ROW_H * 5.5 },
+  { id: 'emotions-mcp', x: COL_W * 3, y: ROW_H * 5.5 },
 ]
 
 // Dispatch chain edges (upstream → downstream)
 const DISPATCH_CHAINS: [string, string][] = [
+  ['fzt', 'fzt-terminal'],
   ['fzt-terminal', 'my-homepage'],
   ['fzt-terminal', 'fzt-showcase'],
-  ['my-homepage', 'api'],
   ['fzt-terminal', 'api'],
+  ['my-homepage', 'api'],
   ['kill-me', 'api'],
   ['plant-agent', 'api'],
   ['investing', 'api'],
@@ -36,23 +71,15 @@ const DISPATCH_CHAINS: [string, string][] = [
   ['infra-diagram', 'api'],
 ]
 
-const COLS = 4
-const COL_W = 300
-const ROW_H = 140
-const PADDING = 40
-
-function buildNodes(repos: string[], runsByRepo: Map<string, CIRun[]>): Node[] {
-  return repos.map((repo, i) => ({
-    id: repo,
+function buildNodes(layout: RepoPosition[], runsByRepo: Map<string, CIRun[]>): Node[] {
+  return layout.map((repo) => ({
+    id: repo.id,
     type: 'ci',
-    position: {
-      x: PADDING + (i % COLS) * COL_W,
-      y: PADDING + Math.floor(i / COLS) * ROW_H,
-    },
+    position: { x: repo.x, y: repo.y },
     data: {
-      label: repo,
-      repoName: repo,
-      runs: runsByRepo.get(repo) || [],
+      label: repo.id,
+      repoName: repo.id,
+      runs: runsByRepo.get(repo.id) || [],
     } satisfies CINodeData,
   }))
 }
@@ -69,6 +96,8 @@ function buildEdges(runsByRepo: Map<string, CIRun[]>): Edge[] {
       id: `${src}->${dst}`,
       source: src,
       target: dst,
+      sourceHandle: 'bottom-src',
+      targetHandle: 'top-tgt',
       type: 'smoothstep',
       animated: cascading,
       style: {
@@ -108,7 +137,7 @@ export default function CIDashboardView() {
     return map
   }, [runs])
 
-  const nodes = useMemo(() => buildNodes(REPOS, runsByRepo), [runsByRepo])
+  const nodes = useMemo(() => buildNodes(LAYOUT, runsByRepo), [runsByRepo])
   const edges = useMemo(() => buildEdges(runsByRepo), [runsByRepo])
 
   // Watch mode: notify when all active runs complete
