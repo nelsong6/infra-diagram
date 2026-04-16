@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import ELK from 'elkjs/lib/elk.bundled.js'
+import ELK, { type ElkExtendedEdge } from 'elkjs/lib/elk.bundled.js'
 import type { Node, Edge } from '@xyflow/react'
 
 const elk = new ELK()
@@ -15,6 +15,22 @@ const DEFAULT_OPTIONS: Record<string, string> = {
 
 const NODE_WIDTH = 200
 const NODE_HEIGHT = 100
+
+// Convert ELK edge sections to an SVG path string
+function elkEdgeToPath(edge: ElkExtendedEdge): string | undefined {
+  const section = edge.sections?.[0]
+  if (!section) return undefined
+
+  const points = [
+    section.startPoint,
+    ...(section.bendPoints || []),
+    section.endPoint,
+  ]
+
+  return points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ')
+}
 
 export function useELKLayout(
   inputNodes: Node[],
@@ -45,6 +61,14 @@ export function useELKLayout(
 
     const layoutedGraph = await elk.layout(graph)
 
+    // Build a map of ELK edge paths keyed by edge ID
+    const elkEdgeMap = new Map<string, string>()
+    for (const e of (layoutedGraph.edges || []) as ElkExtendedEdge[]) {
+      const path = elkEdgeToPath(e)
+      if (path && e.id) elkEdgeMap.set(e.id, path)
+    }
+
+    // Apply ELK-computed node positions
     const layoutedNodes = inputNodes.map((node) => {
       const elkNode = layoutedGraph.children?.find((n) => n.id === node.id)
       return {
@@ -56,8 +80,23 @@ export function useELKLayout(
       }
     })
 
+    // Apply ELK-computed edge paths — edges with paths become hidden
+    // (the path is rendered by a custom edge overlay)
+    const layoutedEdges = inputEdges.map((edge) => {
+      const elkPath = elkEdgeMap.get(edge.id)
+      if (elkPath) {
+        return {
+          ...edge,
+          // Store the ELK path for the custom edge renderer
+          data: { ...((edge.data as Record<string, unknown>) || {}), elkPath },
+          type: 'elk',
+        }
+      }
+      return edge
+    })
+
     setNodes(layoutedNodes)
-    setEdges(inputEdges)
+    setEdges(layoutedEdges)
     setLayoutReady(true)
   }, [inputNodes, inputEdges, options])
 

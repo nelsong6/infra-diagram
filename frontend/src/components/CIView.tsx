@@ -11,9 +11,11 @@ import '@xyflow/react/dist/style.css'
 import { useSSE } from '../hooks/useSSE'
 import { useELKLayout } from '../hooks/useELKLayout'
 import CIPipelineNodeComponent, { type CINodeData } from './CIPipelineNode'
+import ELKEdgeComponent from './ELKEdge'
 import type { CIRun, ConnectionStatus } from '../types/ci'
 
 const nodeTypes = { ci: CIPipelineNodeComponent }
+const edgeTypes = { elk: ELKEdgeComponent }
 
 // [source, target]
 export type DispatchEdge = [string, string]
@@ -49,7 +51,6 @@ function buildInputEdges(chains: DispatchEdge[], runsByRepo: Map<string, CIRun[]
       id: `${src}->${dst}`,
       source: src,
       target: dst,
-      type: 'smoothstep',
       animated: cascading,
       style: {
         stroke: cascading ? '#f59e0b' : '#334155',
@@ -159,11 +160,12 @@ export default function CIView({ title, repos, edges: edgeDefs }: CIViewProps) {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{ padding: 0.3 }}
           minZoom={0.3}
           maxZoom={2}
-          defaultEdgeOptions={{ type: 'smoothstep' }}
+          defaultEdgeOptions={{ type: 'elk' }}
           nodesDraggable={false}
           nodesConnectable={false}
         >
