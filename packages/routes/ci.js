@@ -2,16 +2,29 @@ import { Router } from 'express';
 import { createHmac, createSign, timingSafeEqual } from 'node:crypto';
 
 const REPOS = [
-  'fzt', 'fzt-terminal', 'my-homepage', 'fzt-showcase',
+  'fzt', 'fzt-frontend', 'fzt-terminal', 'fzt-browser', 'fzt-automate',
+  'my-homepage', 'fzt-showcase', 'fzt-picker',
   'kill-me', 'plant-agent', 'investing', 'house-hunt',
-  'diagrams', 'api', 'infra-bootstrap', 'fzt-picker',
+  'diagrams', 'api', 'infra-bootstrap',
   'landing-page', 'emotions-mcp',
 ];
 
 // Go dependencies to extract from go.mod on release events
 const GO_DEPS = {
+  'fzt-frontend': [
+    { module: 'github.com/nelsong6/fzt', field: 'fzt' },
+  ],
   'fzt-terminal': [
     { module: 'github.com/nelsong6/fzt', field: 'fzt' },
+    { module: 'github.com/nelsong6/fzt-frontend', field: 'fztFrontend' },
+  ],
+  'fzt-automate': [
+    { module: 'github.com/nelsong6/fzt', field: 'fzt' },
+    { module: 'github.com/nelsong6/fzt-terminal', field: 'fztTerminal' },
+  ],
+  'fzt-browser': [
+    { module: 'github.com/nelsong6/fzt', field: 'fzt' },
+    { module: 'github.com/nelsong6/fzt-terminal', field: 'fztTerminal' },
   ],
   'fzt-picker': [
     { module: 'github.com/nelsong6/fzt', field: 'fzt' },

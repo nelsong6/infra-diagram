@@ -34,16 +34,21 @@ export const tofuEdges: DispatchEdge[] = []
 // ── overview (all repos) ────────────────────────────────────
 
 export const overviewRepos = [
-  'fzt', 'fzt-terminal', 'my-homepage', 'fzt-showcase',
+  'fzt', 'fzt-frontend', 'fzt-terminal', 'fzt-browser', 'fzt-automate',
+  'my-homepage', 'fzt-showcase', 'fzt-picker',
   'kill-me', 'plant-agent', 'investing', 'house-hunt',
   'diagrams', 'api',
-  'infra-bootstrap', 'fzt-picker', 'landing-page', 'emotions-mcp',
+  'infra-bootstrap', 'landing-page', 'emotions-mcp',
 ]
 
 export const overviewEdges: DispatchEdge[] = [
-  { source: 'fzt', target: 'fzt-terminal' },
-  { source: 'fzt-terminal', target: 'my-homepage' },
-  { source: 'fzt-terminal', target: 'fzt-showcase' },
+  { source: 'fzt', target: 'fzt-frontend' },
+  { source: 'fzt-frontend', target: 'fzt-terminal' },
+  { source: 'fzt-terminal', target: 'fzt-browser' },
+  { source: 'fzt-terminal', target: 'fzt-automate' },
+  { source: 'fzt-terminal', target: 'fzt-picker' },
+  { source: 'fzt-browser', target: 'my-homepage' },
+  { source: 'fzt-browser', target: 'fzt-showcase' },
   { source: 'fzt-terminal', target: 'api' },
   { source: 'my-homepage', target: 'api' },
   { source: 'kill-me', target: 'api' },
