@@ -211,12 +211,10 @@ export function createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey
       const packageFetches = Object.entries(ROUTE_PACKAGES).map(async ([repo, pkgName]) => {
         try {
           const res = await fetch(`https://npm.pkg.github.com/${pkgName}`, {
-            headers: { Authorization: `token ${token}` },
+            headers: { Authorization: `Bearer ${token}` },
           });
           if (!res.ok) {
-            const msg = `npm registry HTTP ${res.status}`;
-            console.error(`[ci] ${msg} for ${repo} (${pkgName})`);
-            versionErrors.set(repo, msg);
+            console.error(`[ci] npm registry HTTP ${res.status} for ${repo} (${pkgName})`);
             return;
           }
           const data = await res.json();
@@ -231,7 +229,6 @@ export function createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey
           });
         } catch (err) {
           console.error(`[ci] Package backfill failed for ${repo} (${pkgName}):`, err.message);
-          versionErrors.set(repo, err.message);
         }
       });
 
