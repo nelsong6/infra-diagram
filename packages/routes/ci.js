@@ -1,13 +1,21 @@
 import { Router } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
+const REPOS = [
+  'fzt', 'fzt-terminal', 'my-homepage', 'fzt-showcase',
+  'kill-me', 'plant-agent', 'investing', 'house-hunt',
+  'infra-diagram', 'api', 'infra-bootstrap', 'picker',
+  'landing-page', 'emotions-mcp',
+];
+
 /**
  * CI Dashboard routes — webhook receiver + SSE broadcaster + version tracking.
  *
  * @param {object} opts
  * @param {string} opts.webhookSecret - GitHub webhook HMAC signing secret
+ * @param {string} opts.githubToken - GitHub PAT for backfilling runs on cold start
  */
-export function createCIRoutes({ webhookSecret }) {
+export function createCIRoutes({ webhookSecret, githubToken }) {
   const router = Router();
 
   // In-memory state
@@ -15,12 +23,84 @@ export function createCIRoutes({ webhookSecret }) {
   const versions = new Map();          // key: repoName → latest published version
   const deployedVersions = new Map();  // key: repoName → deployed version info
   const sseClients = new Set();
+  let backfilled = false;
 
   function broadcast(event, data) {
     const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
     for (const client of sseClients) {
       client.write(msg);
     }
+  }
+
+  function isDependabot(wr) {
+    return wr.head_branch?.startsWith('dependabot/') ||
+      wr.name?.toLowerCase().includes('dependabot');
+  }
+
+  function toRun(wr) {
+    return {
+      repo: wr.repository?.full_name || `nelsong6/${wr.name}`,
+      repoName: wr.repository?.name || wr.name,
+      workflow: wr.name || wr.workflow_name || '',
+      workflowId: wr.workflow_id,
+      runId: wr.id,
+      runNumber: wr.run_number,
+      status: wr.status,
+      conclusion: wr.conclusion,
+      headBranch: wr.head_branch,
+      headSha: wr.head_sha?.substring(0, 7),
+      commitMessage: wr.head_commit?.message?.split('\n')[0] || wr.display_title || '',
+      event: wr.event,
+      htmlUrl: wr.html_url,
+      startedAt: wr.run_started_at,
+      updatedAt: wr.updated_at,
+      action: wr.status,
+    };
+  }
+
+  // ── Backfill from GitHub API on cold start ────────────────────
+
+  async function backfillFromGitHub() {
+    if (backfilled || !githubToken) return;
+    backfilled = true;
+
+    console.log('[ci] Backfilling runs from GitHub API...');
+    const headers = {
+      Authorization: `token ${githubToken}`,
+      Accept: 'application/vnd.github+json',
+    };
+
+    const fetches = REPOS.map(async (repo) => {
+      try {
+        const res = await fetch(
+          `https://api.github.com/repos/nelsong6/${repo}/actions/runs?per_page=5&branch=main`,
+          { headers },
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        for (const wr of data.workflow_runs || []) {
+          if (isDependabot(wr)) continue;
+          const run = toRun(wr);
+          run.repo = `nelsong6/${repo}`;
+          run.repoName = repo;
+          runs.set(`${run.repo}/${run.runId}`, run);
+        }
+      } catch (err) {
+        console.error(`[ci] Backfill failed for ${repo}:`, err.message);
+      }
+    });
+
+    await Promise.all(fetches);
+
+    // Prune old runs
+    const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+    for (const [k, v] of runs) {
+      if (new Date(v.updatedAt).getTime() < cutoff) {
+        runs.delete(k);
+      }
+    }
+
+    console.log(`[ci] Backfilled ${runs.size} runs across ${REPOS.length} repos`);
   }
 
   // ── Webhook receiver ──────────────────────────────────────────
@@ -70,29 +150,11 @@ export function createCIRoutes({ webhookSecret }) {
         return res.status(400).json({ error: 'Missing workflow_run payload' });
       }
 
-      if (wr.head_branch?.startsWith('dependabot/') || wr.name?.toLowerCase().includes('dependabot')) {
+      if (isDependabot(wr)) {
         return res.status(200).json({ ignored: true, reason: 'dependabot' });
       }
 
-      const run = {
-        repo: wr.repository?.full_name || wr.head_repository?.full_name || 'unknown',
-        repoName: wr.repository?.name || 'unknown',
-        workflow: wr.name,
-        workflowId: wr.workflow_id,
-        runId: wr.id,
-        runNumber: wr.run_number,
-        status: wr.status,
-        conclusion: wr.conclusion,
-        headBranch: wr.head_branch,
-        headSha: wr.head_sha?.substring(0, 7),
-        commitMessage: wr.head_commit?.message?.split('\n')[0] || '',
-        event: wr.event,
-        htmlUrl: wr.html_url,
-        startedAt: wr.run_started_at,
-        updatedAt: wr.updated_at,
-        action,
-      };
-
+      const run = toRun(wr);
       const key = `${run.repo}/${run.runId}`;
       runs.set(key, run);
 
@@ -133,14 +195,16 @@ export function createCIRoutes({ webhookSecret }) {
 
   // ── SSE endpoint ──────────────────────────────────────────────
 
-  router.get('/events', (req, res) => {
+  router.get('/events', async (req, res) => {
+    // Backfill on first connection
+    await backfillFromGitHub();
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
     });
 
-    // Send current state snapshot
     const snapshot = {
       runs: Array.from(runs.values()),
       versions: Array.from(versions.values()),
