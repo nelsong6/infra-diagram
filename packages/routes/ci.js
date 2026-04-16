@@ -23,7 +23,7 @@ export function createCIRoutes({ webhookSecret, githubToken }) {
   const versions = new Map();          // key: repoName → latest published version
   const deployedVersions = new Map();  // key: repoName → deployed version info
   const sseClients = new Set();
-  let backfilled = false;
+  let backfillPromise = null;
 
   function broadcast(event, data) {
     const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -61,46 +61,44 @@ export function createCIRoutes({ webhookSecret, githubToken }) {
   // ── Backfill from GitHub API on cold start ────────────────────
 
   async function backfillFromGitHub() {
-    if (backfilled || !githubToken) return;
-    backfilled = true;
-
-    console.log('[ci] Backfilling runs from GitHub API...');
-    const headers = {
-      Authorization: `token ${githubToken}`,
-      Accept: 'application/vnd.github+json',
-    };
-
-    const fetches = REPOS.map(async (repo) => {
-      try {
-        const res = await fetch(
-          `https://api.github.com/repos/nelsong6/${repo}/actions/runs?per_page=5&branch=main`,
-          { headers },
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        for (const wr of data.workflow_runs || []) {
-          if (isDependabot(wr)) continue;
-          const run = toRun(wr);
-          run.repo = `nelsong6/${repo}`;
-          run.repoName = repo;
-          runs.set(`${run.repo}/${run.runId}`, run);
-        }
-      } catch (err) {
-        console.error(`[ci] Backfill failed for ${repo}:`, err.message);
-      }
-    });
-
-    await Promise.all(fetches);
-
-    // Prune old runs
-    const cutoff = Date.now() - 2 * 60 * 60 * 1000;
-    for (const [k, v] of runs) {
-      if (new Date(v.updatedAt).getTime() < cutoff) {
-        runs.delete(k);
-      }
+    if (backfillPromise) return backfillPromise;
+    if (!githubToken) {
+      console.warn('[ci] No githubToken configured — skipping backfill');
+      return;
     }
 
-    console.log(`[ci] Backfilled ${runs.size} runs across ${REPOS.length} repos`);
+    backfillPromise = (async () => {
+      console.log('[ci] Backfilling runs from GitHub API...');
+      const headers = {
+        Authorization: `token ${githubToken}`,
+        Accept: 'application/vnd.github+json',
+      };
+
+      const fetches = REPOS.map(async (repo) => {
+        try {
+          const res = await fetch(
+            `https://api.github.com/repos/nelsong6/${repo}/actions/runs?per_page=5&branch=main`,
+            { headers },
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          for (const wr of data.workflow_runs || []) {
+            if (isDependabot(wr)) continue;
+            const run = toRun(wr);
+            run.repo = `nelsong6/${repo}`;
+            run.repoName = repo;
+            runs.set(`${run.repo}/${run.runId}`, run);
+          }
+        } catch (err) {
+          console.error(`[ci] Backfill failed for ${repo}:`, err.message);
+        }
+      });
+
+      await Promise.all(fetches);
+      console.log(`[ci] Backfilled ${runs.size} runs across ${REPOS.length} repos`);
+    })();
+
+    return backfillPromise;
   }
 
   // ── Webhook receiver ──────────────────────────────────────────

@@ -36,6 +36,40 @@ tofu/             OpenTofu IaC — SWA (Free), DNS CNAME (docs.romaine.life), cu
 - **`/`** — Main infrastructure diagram (React Flow) showing apps, shared infra, external services, CI/CD
 - **`/:app`** — Filtered view highlighting a single app's path through infrastructure
 - **`/pipelines`** — Pipeline dependency diagram showing cross-repo CI/CD chains (fzt → my-homepage/fzt-showcase → api) with the dispatch/artifact flow and the lockfile gap issue node
+- **`/ci`** — Live CI dashboard (all repos). Push-based via GitHub App webhooks + SSE
+- **`/ci/fzt`** — fzt asset cascade: fzt → fzt-terminal → my-homepage, fzt-showcase, picker
+- **`/ci/api`** — Route dispatch chain: app repos → api
+- **`/ci/tofu`** — Infrastructure repos: infra-bootstrap, api, infra-diagram, house-hunt, landing-page, emotions-mcp
+
+CI dashboard uses ELK (elkjs) for automatic node positioning and edge routing. Nodes are bottom-aligned per layer with dynamic heights. Webhook events from the `romaine-life-app` GitHub App flow through `api.romaine.life/ci/webhook` → SSE → browser. Cold start backfills from the GitHub API.
+
+## Route Package
+
+`packages/routes/` publishes `@nelsong6/infra-diagram-routes` to GitHub Packages. Mounted at `/ci` in the shared API. Entry point: `index.js` re-exports `createCIRoutes({ webhookSecret, githubToken })`.
+
+All state is in-memory (lost on API restart). Three Maps: `runs` (pipeline runs keyed by `repo/runId`), `versions` (latest published version per repo), `deployedVersions` (live deployed version per repo). Runs older than 2 hours are pruned on each webhook event and after backfill.
+
+### Routes
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/webhook` | GitHub App webhook receiver. HMAC-verified (`x-hub-signature-256`). Handles `workflow_run` events (pipeline status) and `release` events (published versions). Broadcasts to SSE clients. Filters out Dependabot runs. |
+| GET | `/events` | SSE stream. Sends `init` (full snapshot), then `update` (run changes), `version` (releases), `deployed` (deploy reports). Triggers cold-start backfill on first connection. 30s keepalive. |
+| GET | `/status` | JSON snapshot of current runs + connected client count. |
+| GET | `/versions` | JSON snapshot of published + deployed versions. |
+| POST | `/deployed` | Deploy report endpoint. Consumer sites POST `{ site, repo, versions }` after deploy to register their live versions. |
+
+### Cold-start backfill
+
+On first SSE connection, `backfillFromGitHub()` fetches the 5 most recent `main`-branch runs per repo from the GitHub API (14 repos). Requires `githubToken`. The `backfilled` flag prevents re-fetching. Backfill runs are not broadcast — they populate `runs` silently and are included in the `init` snapshot sent to the triggering client.
+
+### Monitored repos
+
+`fzt`, `fzt-terminal`, `my-homepage`, `fzt-showcase`, `kill-me`, `plant-agent`, `investing`, `house-hunt`, `infra-diagram`, `api`, `infra-bootstrap`, `picker`, `landing-page`, `emotions-mcp`.
+
+## Navigation
+
+`NavSidebar` component — persistent collapsible right-side panel with route list grouped by section. Present on all pages.
 
 ## Architecture Data
 
@@ -54,3 +88,12 @@ To add a new app or infra component: add a node in nodes.ts, wire edges in edges
 - `npm run dev` — Dev server on port 5505
 - `npm run build` — TypeScript check + Vite production build
 - `npm run lint` — ESLint
+
+## Change Log
+
+### 2026-04-15
+
+1. **Route package documentation** -- Expanded the CLAUDE.md "Route Package" section from a one-liner to a full reference: route table, in-memory state model (3 Maps), cold-start backfill mechanics, and monitored repo list. Motivated by the package growing beyond a quick summary.
+2. **Fixed cold-start backfill race condition** (`packages/routes/ci.js`) -- The `backfilled` boolean flag was set synchronously before async fetches completed. A second SSE client connecting mid-backfill skipped it entirely and got an empty `init` snapshot. Fix: replaced the boolean with a shared Promise (`backfillPromise`) so concurrent callers all await the same fetch.
+3. **Fixed backfill over-pruning** (`packages/routes/ci.js`) -- The 2-hour run cutoff ran immediately after backfill, deleting all fetched runs during quiet periods (no pushes in 2+ hours). Removed post-backfill pruning — webhook events still prune on arrival, which is the appropriate trigger.
+4. **Added missing-token warning** (`packages/routes/ci.js`) -- `console.warn` when `githubToken` is not configured, making the silent backfill skip visible in API logs.
