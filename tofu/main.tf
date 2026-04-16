@@ -1,4 +1,4 @@
-resource "azurerm_resource_group" "infra_diagram" {
-  name     = "infra-diagram-rg"
+resource "azurerm_resource_group" "diagrams" {
+  name     = "diagrams-rg"
   location = var.location
 }
