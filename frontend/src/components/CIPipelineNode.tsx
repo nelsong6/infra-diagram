@@ -6,6 +6,18 @@ export interface CINodeData {
   label: string
   repoName: string
   runs: CIRun[]
+  nodeHeight: number
+}
+
+// Estimate node height based on content
+const HEIGHT_EMPTY = 66    // label + "No recent runs" + padding + border
+const HEIGHT_WITH_RUN = 106 // label + workflow + commit + status + padding + border
+const HEIGHT_WITH_MORE = 123 // above + "+N more"
+
+export function estimateNodeHeight(runs: CIRun[]): number {
+  if (runs.length === 0) return HEIGHT_EMPTY
+  if (runs.length > 1) return HEIGHT_WITH_MORE
+  return HEIGHT_WITH_RUN
 }
 
 const STATUS_COLORS = {
@@ -58,7 +70,7 @@ function CIPipelineNodeComponent({ data }: NodeProps) {
       <Handle type="source" position={Position.Left} id="left-src" className="!bg-transparent !border-0" />
       <Handle type="target" position={Position.Left} id="left-tgt" className="!bg-transparent !border-0" />
       <div
-        className={`rounded-lg px-4 py-3 border-2 min-w-[180px] h-[130px] overflow-hidden transition-all duration-500 ${
+        className={`rounded-lg px-4 py-3 border-2 min-w-[180px] transition-all duration-500 ${
           status === 'in_progress' ? 'animate-pulse' : ''
         }`}
         style={{

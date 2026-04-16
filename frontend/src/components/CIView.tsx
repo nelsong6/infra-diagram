@@ -10,7 +10,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { useSSE } from '../hooks/useSSE'
 import { useELKLayout } from '../hooks/useELKLayout'
-import CIPipelineNodeComponent, { type CINodeData } from './CIPipelineNode'
+import CIPipelineNodeComponent, { type CINodeData, estimateNodeHeight } from './CIPipelineNode'
 import ELKEdgeComponent from './ELKEdge'
 import type { CIRun, ConnectionStatus } from '../types/ci'
 
@@ -27,16 +27,20 @@ interface CIViewProps {
 }
 
 function buildInputNodes(repos: string[], runsByRepo: Map<string, CIRun[]>): Node[] {
-  return repos.map((id) => ({
-    id,
-    type: 'ci',
-    position: { x: 0, y: 0 }, // ELK will override
-    data: {
-      label: id,
-      repoName: id,
-      runs: runsByRepo.get(id) || [],
-    } satisfies CINodeData,
-  }))
+  return repos.map((id) => {
+    const runs = runsByRepo.get(id) || []
+    return {
+      id,
+      type: 'ci',
+      position: { x: 0, y: 0 }, // ELK will override
+      data: {
+        label: id,
+        repoName: id,
+        runs,
+        nodeHeight: estimateNodeHeight(runs),
+      } satisfies CINodeData,
+    }
+  })
 }
 
 function buildInputEdges(chains: DispatchEdge[], runsByRepo: Map<string, CIRun[]>): Edge[] {

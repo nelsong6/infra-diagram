@@ -15,7 +15,7 @@ const DEFAULT_OPTIONS: Record<string, string> = {
 }
 
 const NODE_WIDTH = 200
-const NODE_HEIGHT = 130
+const DEFAULT_NODE_HEIGHT = 130
 
 // Convert ELK edge sections to an SVG path string
 function elkEdgeToPath(edge: ElkExtendedEdge): string | undefined {
@@ -48,16 +48,21 @@ export function useELKLayout(
     const graph = {
       id: 'root',
       layoutOptions: { ...DEFAULT_OPTIONS, ...options },
-      children: inputNodes.map((node) => ({
+      children: inputNodes.map((node) => {
+        const nodeHeight = (node.data as Record<string, unknown>)?.nodeHeight as number || DEFAULT_NODE_HEIGHT
+        return {
         id: node.id,
         width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-        layoutOptions: { 'org.eclipse.elk.portConstraints': 'FIXED_ORDER' },
+        height: nodeHeight,
+        layoutOptions: {
+          'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
+          'org.eclipse.elk.alignment': 'BOTTOM',
+        },
         ports: [
           { id: `${node.id}-south`, layoutOptions: { 'org.eclipse.elk.port.side': 'SOUTH' } },
           { id: `${node.id}-north`, layoutOptions: { 'org.eclipse.elk.port.side': 'NORTH' } },
         ],
-      })),
+      }}),
       edges: inputEdges.map((edge) => ({
         id: edge.id,
         sources: [`${edge.source}-south`],
