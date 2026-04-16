@@ -45,23 +45,33 @@ CI dashboard uses ELK (elkjs) for automatic node positioning and edge routing. N
 
 ## Route Package
 
-`packages/routes/` publishes `@nelsong6/infra-diagram-routes` to GitHub Packages. Mounted at `/ci` in the shared API. Entry point: `index.js` re-exports `createCIRoutes({ webhookSecret, githubToken })`.
+`packages/routes/` publishes `@nelsong6/infra-diagram-routes` to GitHub Packages. Mounted at `/ci` in the shared API. Entry point: `index.js` re-exports `createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey, installedPackages })`.
 
-All state is in-memory (lost on API restart). Three Maps: `runs` (pipeline runs keyed by `repo/runId`), `versions` (latest published version per repo), `deployedVersions` (live deployed version per repo). Runs older than 2 hours are pruned on each webhook event and after backfill.
+All state is in-memory (lost on API restart). Five Maps: `runs` (pipeline runs keyed by `repo/runId`), `versions` (latest GitHub release per repo), `packageVersions` (latest published route package version per repo), `deployedVersions` (live deployed version per repo), `versionErrors` (backfill failures per repo). Runs older than 2 hours are pruned on each webhook event.
+
+### Auth
+
+GitHub API calls (backfill, npm registry) use GitHub App installation tokens generated from `github-app-id` and `github-app-private-key` Key Vault secrets (the `romaine-life-app` GitHub App — secrets are tagged with the app name for discoverability). Tokens are generated once per backfill cycle via native `crypto.createSign` (RS256 JWT → installation access token). No PAT.
 
 ### Routes
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | POST | `/webhook` | GitHub App webhook receiver. HMAC-verified (`x-hub-signature-256`). Handles `workflow_run` events (pipeline status) and `release` events (published versions). Broadcasts to SSE clients. Filters out Dependabot runs. |
-| GET | `/events` | SSE stream. Sends `init` (full snapshot), then `update` (run changes), `version` (releases), `deployed` (deploy reports). Triggers cold-start backfill on first connection. 30s keepalive. |
+| GET | `/events` | SSE stream. Sends `init` (full snapshot including `packageVersions` and `versionErrors`), then `update` (run changes), `version` (releases), `packageVersion` (route package publishes), `deployed` (deploy reports). Triggers cold-start backfill on first connection. 30s keepalive. |
 | GET | `/status` | JSON snapshot of current runs + connected client count. |
-| GET | `/versions` | JSON snapshot of published + deployed versions. |
+| GET | `/versions` | JSON snapshot of releases, packages, and deployed versions. |
+| POST | `/published` | Source repos POST `{ repoName, version }` after publishing a route package. Stored in `packageVersions`, broadcast as `packageVersion` SSE event. |
 | POST | `/deployed` | Deploy report endpoint. Consumer sites POST `{ site, repo, versions }` after deploy to register their live versions. |
 
 ### Cold-start backfill
 
-On first SSE connection, `backfillFromGitHub()` fetches the 5 most recent `main`-branch runs per repo from the GitHub API (14 repos). Requires `githubToken`. A shared Promise (`backfillPromise`) ensures concurrent SSE connections all await the same fetch rather than racing. Backfill runs are not broadcast — they populate `runs` silently and are included in the `init` snapshot sent to connecting clients.
+On first SSE connection, two backfill functions run in parallel:
+
+- `backfillFromGitHub()` — fetches the 5 most recent `main`-branch runs per repo from the GitHub API (14 repos).
+- `backfillVersions()` — fetches latest GitHub release per repo, latest route package version per publisher from the GitHub Packages API (`/users/nelsong6/packages/npm/{name}/versions`), and `version.json` from each frontend site URL. Failures are recorded in `versionErrors` and surfaced on dashboard nodes.
+
+Both use shared Promises to prevent concurrent SSE connections from racing. The `installedPackages` option pre-populates the API's deployed route package versions from its `package-lock.json` at startup (no network call needed).
 
 ### Monitored repos
 
