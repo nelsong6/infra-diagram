@@ -9,116 +9,74 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useSSE } from '../hooks/useSSE'
-import CIPipelineNodeComponent, { type CINodeData, estimateNodeHeight } from './CIPipelineNode'
-import CIContainerNodeComponent from './CIContainerNode'
-import CIPackageNodeComponent from './CIPackageNode'
-import type { CIRun, PublishedVersion, DeployedVersion, VersionErrors, ConnectionStatus } from '../types/ci'
+import CICascadeNodeComponent, { type CICascadeData } from './CICascadeNode'
+import type { CIRun, PublishedVersion, DeployedVersion, ConnectionStatus } from '../types/ci'
 
-const nodeTypes = {
-  ci: CIPipelineNodeComponent,
-  'fzt-consumer': CIContainerNodeComponent,
-  'fzt-package': CIPackageNodeComponent,
-}
+const nodeTypes = { cascade: CICascadeNodeComponent }
 
-// Layout constants
-const NODE_WIDTH = 200
+const NODE_WIDTH = 240
 const NODE_SPACING = 40
-const PACKAGE_NODE_WIDTH = 160
-const CONTAINER_PADDING_X = 20
-const CONTAINER_PADDING_TOP = 40
-const CONTAINER_PADDING_BOTTOM = 20
-const ROW_GAP = 80
+const ROW_GAP = 60
 
-// Bottom tier consumers of fzt-terminal releases
 const CONSUMER_REPOS = ['my-homepage', 'fzt-showcase', 'picker'] as const
 
 function buildLayout(
   runsByRepo: Map<string, CIRun[]>,
   versions: Map<string, PublishedVersion>,
   deployed: Map<string, DeployedVersion>,
-  versionErrors: VersionErrors,
 ): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = []
   const edges: Edge[] = []
-
-  const packageNodeHeight = 44
-  const containerHeight = CONTAINER_PADDING_TOP + packageNodeHeight + CONTAINER_PADDING_BOTTOM
   const consumerCount = CONSUMER_REPOS.length
-  const consumerContainerWidth = NODE_WIDTH + CONTAINER_PADDING_X * 2
-  const totalConsumerWidth = consumerCount * consumerContainerWidth + (consumerCount - 1) * NODE_SPACING
+  const totalConsumerWidth = consumerCount * NODE_WIDTH + (consumerCount - 1) * NODE_SPACING
+  const centerX = (totalConsumerWidth - NODE_WIDTH) / 2
 
-  // ── fzt (top, pipeline node — publishes engine) ──
+  // ── fzt (top — publishes engine, no consumed) ──
   const fztRuns = runsByRepo.get('fzt') || []
-  const fztPub = versions.get('fzt')
-  const fztDep = deployed.get('fzt')
-  const fztErr = versionErrors['fzt']
-  const fztHeight = estimateNodeHeight(fztRuns, !!(fztPub || fztDep), !!fztErr)
   const fztActive = fztRuns.some(r => r.status === 'in_progress' || r.status === 'queued')
-
-  // Center fzt above fzt-terminal container
-  const fztTermContainerWidth = consumerContainerWidth
-  const fztX = (totalConsumerWidth - NODE_WIDTH) / 2
 
   nodes.push({
     id: 'fzt',
-    type: 'ci',
-    position: { x: fztX, y: 0 },
+    type: 'cascade',
+    position: { x: centerX, y: 0 },
     style: { width: NODE_WIDTH },
     data: {
       label: 'fzt',
-      repoName: 'fzt',
       runs: fztRuns,
-      nodeHeight: fztHeight,
-      publishedVersion: fztPub,
-      deployedVersion: fztDep,
-      versionError: fztErr,
-    } satisfies CINodeData,
+      provided: { label: 'engine', version: versions.get('fzt')?.version },
+    } satisfies CICascadeData,
   })
 
-  // ── fzt-terminal (middle, container — consumes fzt engine, publishes releases) ──
+  // ── fzt-terminal (middle — consumes fzt engine, publishes releases) ──
   const fztTermRuns = runsByRepo.get('fzt-terminal') || []
   const fztTermActive = fztTermRuns.some(r => r.status === 'in_progress' || r.status === 'queued')
-  const fztTermY = fztHeight + ROW_GAP
-  const fztTermX = (totalConsumerWidth - fztTermContainerWidth) / 2
+  const fztTermDeployed = deployed.get('fzt-terminal')
+
+  // Estimate fzt node height: title ~52px, provided ~48px
+  const fztNodeHeight = 100
+  const fztTermY = fztNodeHeight + ROW_GAP
 
   nodes.push({
     id: 'fzt-terminal',
-    type: 'fzt-consumer',
-    position: { x: fztTermX, y: fztTermY },
+    type: 'cascade',
+    position: { x: centerX, y: fztTermY },
+    style: { width: NODE_WIDTH },
     data: {
       label: 'fzt-terminal',
-      containerWidth: fztTermContainerWidth,
-      containerHeight,
       runs: fztTermRuns,
-    },
-    style: { width: fztTermContainerWidth, height: containerHeight },
+      consumed: { label: 'fzt', version: fztTermDeployed?.versions?.fzt },
+      provided: { label: 'release', version: versions.get('fzt-terminal')?.version },
+    } satisfies CICascadeData,
   })
 
-  // Package node inside fzt-terminal showing consumed fzt engine version
-  const fztTermDeployed = deployed.get('fzt-terminal')
-  const consumedFztVersion = fztTermDeployed?.versions?.fzt
-
-  nodes.push({
-    id: 'pkg-fzt-terminal',
-    type: 'fzt-package',
-    parentId: 'fzt-terminal',
-    extent: 'parent' as const,
-    position: { x: CONTAINER_PADDING_X, y: CONTAINER_PADDING_TOP },
-    style: { width: PACKAGE_NODE_WIDTH },
-    data: {
-      label: 'fzt',
-      deployedVersion: consumedFztVersion,
-    },
-  })
-
-  // Edge: fzt → package node inside fzt-terminal
+  // Edge: fzt provided → fzt-terminal consumed
   const fztToTermCascading = fztActive || fztTermActive
   edges.push({
-    id: 'fzt->pkg-fzt-terminal',
+    id: 'fzt->fzt-terminal',
     source: 'fzt',
-    sourceHandle: 'bottom-src',
-    target: 'pkg-fzt-terminal',
-    targetHandle: 'top-tgt',
+    sourceHandle: 'provided-src',
+    target: 'fzt-terminal',
+    targetHandle: 'consumed-tgt',
     type: 'straight',
     animated: fztToTermCascading,
     style: {
@@ -128,55 +86,40 @@ function buildLayout(
     },
   })
 
-  // ── Consumer containers (bottom row) ──
-  const consumerY = fztTermY + containerHeight + ROW_GAP
+  // ── Consumers (bottom row) ──
+  // Estimate fzt-terminal height: consumed ~48px, title ~52px, provided ~48px
+  const fztTermNodeHeight = 148
+  const consumerY = fztTermY + fztTermNodeHeight + ROW_GAP
 
   for (let i = 0; i < consumerCount; i++) {
     const repo = CONSUMER_REPOS[i]
     const runs = runsByRepo.get(repo) || []
-    const containerId = `consumer-${repo}`
-    const pkgId = `pkg-${repo}`
-    const containerX = i * (consumerContainerWidth + NODE_SPACING)
-
-    nodes.push({
-      id: containerId,
-      type: 'fzt-consumer',
-      position: { x: containerX, y: consumerY },
-      data: {
-        label: repo,
-        containerWidth: consumerContainerWidth,
-        containerHeight,
-        runs,
-      },
-      style: { width: consumerContainerWidth, height: containerHeight },
-    })
-
     const dep = deployed.get(repo)
     const consumedVersion = dep?.versions?.fztTerminal
+    const containerX = i * (NODE_WIDTH + NODE_SPACING)
 
     nodes.push({
-      id: pkgId,
-      type: 'fzt-package',
-      parentId: containerId,
-      extent: 'parent' as const,
-      position: { x: CONTAINER_PADDING_X, y: CONTAINER_PADDING_TOP },
-      style: { width: PACKAGE_NODE_WIDTH },
+      id: repo,
+      type: 'cascade',
+      position: { x: containerX, y: consumerY },
+      style: { width: NODE_WIDTH },
       data: {
-        label: 'fzt-terminal',
-        deployedVersion: consumedVersion,
-      },
+        label: repo,
+        runs,
+        consumed: { label: 'fzt-terminal', version: consumedVersion },
+      } satisfies CICascadeData,
     })
 
-    // Edge: fzt-terminal container → package node inside consumer
+    // Edge: fzt-terminal provided → consumer consumed
     const consumerActive = runs.some(r => r.status === 'in_progress' || r.status === 'queued')
     const cascading = fztTermActive || consumerActive
 
     edges.push({
-      id: `fzt-terminal->${pkgId}`,
+      id: `fzt-terminal->${repo}`,
       source: 'fzt-terminal',
-      sourceHandle: 'bottom-src',
-      target: pkgId,
-      targetHandle: 'top-tgt',
+      sourceHandle: 'provided-src',
+      target: repo,
+      targetHandle: 'consumed-tgt',
       type: 'straight',
       animated: cascading,
       style: {
@@ -206,7 +149,7 @@ function StatusDot({ status }: { status: ConnectionStatus }) {
 export default function CIFztView() {
   const title = 'CI — fzt'
   const [watching, setWatching] = useState(true)
-  const { runs, versions, deployed, versionErrors, status } = useSSE(watching)
+  const { runs, versions, deployed, status } = useSSE(watching)
 
   const runsByRepo = useMemo(() => {
     const map = new Map<string, CIRun[]>()
@@ -218,8 +161,8 @@ export default function CIFztView() {
   }, [runs])
 
   const { nodes, edges } = useMemo(
-    () => buildLayout(runsByRepo, versions, deployed, versionErrors),
-    [runsByRepo, versions, deployed, versionErrors],
+    () => buildLayout(runsByRepo, versions, deployed),
+    [runsByRepo, versions, deployed],
   )
 
   const hasActiveRuns = useMemo(() => {
