@@ -156,6 +156,21 @@ export function createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey
     }
   }
 
+  async function fetchSiteVersion(repoName, siteUrl) {
+    const res = await fetch(`${siteUrl}/version.json`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const deployed = {
+      site: siteUrl.replace('https://', ''),
+      repo: repoName,
+      versions: data,
+      reportedAt: data.deployedAt || new Date().toISOString(),
+    };
+    deployedVersions.set(repoName, deployed);
+    broadcast('deployed', deployed);
+    console.log(`[ci] Refreshed version.json for ${repoName}:`, data);
+  }
+
   function isDependabot(wr) {
     return wr.head_branch?.startsWith('dependabot/') ||
       wr.name?.toLowerCase().includes('dependabot');
@@ -438,6 +453,17 @@ export function createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey
       }
 
       broadcast('update', run);
+
+      // When a deploy workflow completes successfully, re-fetch version.json
+      if (run.status === 'completed' && run.conclusion === 'success') {
+        const siteUrl = SITE_URLS[run.repoName];
+        if (siteUrl) {
+          fetchSiteVersion(run.repoName, siteUrl).catch(err =>
+            console.error(`[ci] version.json refresh failed for ${run.repoName}:`, err.message)
+          );
+        }
+      }
+
       return res.status(200).json({ received: true, key });
     }
 
