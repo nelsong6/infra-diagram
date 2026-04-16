@@ -176,7 +176,7 @@ export default function CIView({ title, repos, edges: edgeDefs }: CIViewProps) {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
-          fitViewOptions={{ padding: 0.3 }}
+          fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
           minZoom={0.3}
           maxZoom={2}
           defaultEdgeOptions={{ type: 'elk' }}
