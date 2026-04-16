@@ -10,9 +10,6 @@ export type FztFinalNodeData = {
 
 export type FztFinalNode = Node<FztFinalNodeData>
 
-const W = 260
-const GAP = 30
-
 // Three columns: engine (left), ecosystem (center), tools (right)
 const COL = { engine: 0, eco: 380, tools: 800 }
 const ROW = { r0: 0, r1: 120, r2: 240, r3: 360, r4: 480 }

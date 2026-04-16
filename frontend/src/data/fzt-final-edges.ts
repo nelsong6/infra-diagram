@@ -1,6 +1,5 @@
 import type { Edge } from '@xyflow/react'
 
-const ENGINE = { stroke: '#38bdf8', strokeWidth: 1.5 }
 const ECO = { stroke: '#f59e0b', strokeWidth: 2 }
 const TOOL = { stroke: '#4ade80', strokeWidth: 1.5 }
 const INTERNAL = { stroke: '#475569', strokeWidth: 1 }

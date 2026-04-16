@@ -73,8 +73,8 @@ function findReachableEdges(reachableNodes: Set<string>, edges: Edge[]): Set<str
 }
 
 export default function FztReposView() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(fztReposNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(fztReposEdges)
+  const [nodes, , onNodesChange] = useNodesState(fztReposNodes)
+  const [edges, , onEdgesChange] = useEdgesState(fztReposEdges)
   const [hoveredConsumer, setHoveredConsumer] = useState<string | null>(null)
 
   const { highlightedNodes, highlightedEdges } = useMemo(() => {
