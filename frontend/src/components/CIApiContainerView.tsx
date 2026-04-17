@@ -12,6 +12,7 @@ import { useSSE } from '../hooks/useSSE'
 import CIPipelineNodeComponent, { type CINodeData, estimateNodeHeight } from './CIPipelineNode'
 import CIContainerNodeComponent from './CIContainerNode'
 import CIPackageNodeComponent from './CIPackageNode'
+import { edgeStyle, edgeMarker } from './ciEdgeStyle'
 import type { CIRun, PublishedVersion, DeployedVersion, VersionErrors, ConnectionStatus } from '../types/ci'
 import { apiHostRepos, routePackageMap } from '../data/ci-views'
 
@@ -138,11 +139,8 @@ function buildLayout(
       targetHandle: 'top-tgt',
       type: 'straight',
       animated: cascading,
-      style: {
-        stroke: cascading ? '#f59e0b' : '#334155',
-        strokeWidth: cascading ? 2 : 1,
-        opacity: cascading ? 1 : 0.4,
-      },
+      style: edgeStyle(cascading),
+      markerEnd: edgeMarker(cascading),
     })
   }
 

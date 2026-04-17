@@ -4,7 +4,6 @@ import {
   Background,
   Controls,
   BackgroundVariant,
-  MarkerType,
   type Node,
   type Edge,
 } from '@xyflow/react'
@@ -17,6 +16,7 @@ import CICascadeNodeComponent, {
   CASCADE_TITLE_HEIGHT,
 } from './CICascadeNode'
 import CIPackageNodeComponent from './CIPackageNode'
+import { edgeStyle, edgeMarker } from './ciEdgeStyle'
 import type { CIRun, PublishedVersion, DeployedVersion, ConnectionStatus } from '../types/ci'
 
 const nodeTypes = {
@@ -71,29 +71,6 @@ function providedY(hasConsumed: boolean): number {
 
 function isActive(runs: CIRun[]): boolean {
   return runs.some(r => r.status === 'in_progress' || r.status === 'queued')
-}
-
-function edgeStyle(cascading: boolean) {
-  return {
-    // Idle edges are visible but subdued — slate-500 at 0.7 opacity reads as
-    // structural backdrop against the slate-900 page bg without competing
-    // with active edges. Active stays amber; the color difference (not
-    // opacity or width alone) is what makes activity pop.
-    stroke: cascading ? '#f59e0b' : '#64748b',
-    strokeWidth: cascading ? 2 : 1,
-    opacity: cascading ? 1 : 0.7,
-  }
-}
-
-// Arrow marker at the consumer end. Color matches the edge stroke so active
-// arrows are amber and idle arrows are slate-500.
-function edgeMarker(cascading: boolean) {
-  return {
-    type: MarkerType.ArrowClosed,
-    color: cascading ? '#f59e0b' : '#64748b',
-    width: 18,
-    height: 18,
-  }
 }
 
 function buildLayout(
