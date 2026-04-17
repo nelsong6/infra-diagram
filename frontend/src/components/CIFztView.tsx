@@ -35,7 +35,7 @@ const PKG_INSET = (NODE_WIDTH - PKG_WIDTH) / 2
 const MIDDLE_CONSUMERS = [
   { id: 'fzt-browser', label: 'fzt-browser', providesRelease: true },
   { id: 'fzt-automate', label: 'fzt-automate', providesRelease: true },
-  { id: 'fzt-picker', label: 'fzt-picker', providesRelease: false },
+  { id: 'fzt-picker', label: 'fzt-picker', providesRelease: true },
 ] as const
 
 // Row 4 — app consumers. Download from fzt-browser's release.
