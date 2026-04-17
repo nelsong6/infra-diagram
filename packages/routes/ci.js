@@ -44,14 +44,18 @@ const ROUTE_PACKAGES = {
   'llm-explorer': '@nelsong6/llm-explorer-routes',
 };
 
-// Sites that serve a /version.json for deployed version backfill
+// Sites that serve a /version.json for deployed version backfill.
+// landing-page is intentionally NOT in this list — it doesn't expose
+// /version.json and isn't represented as a node on /ci/api (no route
+// package). Adding it back requires first giving it a version.json in
+// its deploy workflow AND deciding where it should surface on the
+// dashboard.
 const SITE_URLS = {
   'my-homepage': 'https://homepage.romaine.life',
   'fzt-showcase': 'https://fzt.romaine.life',
   'kill-me': 'https://workout.romaine.life',
   'plant-agent': 'https://plants.romaine.life',
   'diagrams': 'https://diagrams.romaine.life',
-  'landing-page': 'https://romaine.life',
   'house-hunt': 'https://househunt.romaine.life',
   'investing': 'https://investing.romaine.life',
 };
