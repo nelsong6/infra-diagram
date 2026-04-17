@@ -85,8 +85,8 @@ async function getInstallationToken(appId, privateKey) {
     { method: 'POST', headers },
   );
   if (!tokenRes.ok) throw new Error(`Failed to create installation token: HTTP ${tokenRes.status}`);
-  const { token } = await tokenRes.json();
-  return token;
+  const { token, expires_at } = await tokenRes.json();
+  return { token, expiresAt: Date.parse(expires_at) };
 }
 
 /**
@@ -210,22 +210,33 @@ export function createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey
     };
   }
 
-  // ── GitHub App token (generated once per backfill cycle) ───────
+  // ── GitHub App token (cached with expiry, regenerated before it expires) ──
+  //
+  // GitHub App installation tokens live for 1 hour. Previously we cached the
+  // token for the lifetime of the api process — so after an hour every
+  // release-webhook's `extractGoModVersions` call silently 401'd and the
+  // deployed map went stale until the container restarted. Now we track the
+  // expires_at from GitHub's response and regenerate within 60s of expiry
+  // (slack for clock skew + request latency). Matches @octokit/auth-app's
+  // behavior.
 
-  let cachedToken = null;
+  let cached = null; // { token, expiresAt: ms-epoch } | null
 
   async function getGitHubToken() {
-    if (cachedToken) return cachedToken;
+    if (cached && Date.now() < cached.expiresAt - 60_000) {
+      return cached.token;
+    }
     if (!githubAppId || !githubAppPrivateKey) {
       console.warn('[ci] No GitHub App credentials configured — skipping backfill');
       return null;
     }
     try {
-      cachedToken = await getInstallationToken(githubAppId, githubAppPrivateKey);
-      console.log('[ci] Generated GitHub App installation token');
-      return cachedToken;
+      cached = await getInstallationToken(githubAppId, githubAppPrivateKey);
+      console.log(`[ci] Generated GitHub App installation token (expires ${new Date(cached.expiresAt).toISOString()})`);
+      return cached.token;
     } catch (err) {
       console.error('[ci] Failed to generate GitHub App token:', err.message);
+      cached = null;
       return null;
     }
   }
