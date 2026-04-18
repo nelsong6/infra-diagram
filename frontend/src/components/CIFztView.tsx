@@ -49,6 +49,65 @@ const APP_CONSUMERS = [
   { id: 'fzt-showcase', label: 'fzt-showcase' },
 ] as const
 
+// Edges the cascade must satisfy: producer's release version must equal the
+// consumer's pinned version for `field`. Mirrors the check-ci skill — keep the
+// two in sync. Consumer key is the simple repo name (matches `useSSE` keying).
+const VERIFICATION_EDGES: ReadonlyArray<readonly [string, string, string]> = [
+  ['fzt',          'fzt-frontend', 'fzt'],
+  ['fzt',          'fzt-terminal', 'fzt'],
+  ['fzt-frontend', 'fzt-terminal', 'fztFrontend'],
+  ['fzt-terminal', 'fzt-browser',  'fztTerminal'],
+  ['fzt-terminal', 'fzt-automate', 'fztTerminal'],
+  ['fzt-terminal', 'fzt-picker',   'fztTerminal'],
+  ['fzt-browser',  'my-homepage',  'fztBrowser'],
+  ['fzt-browser',  'fzt-showcase', 'fztBrowser'],
+] as const
+
+const FZT_CASCADE_REPOS = new Set([
+  'fzt', 'fzt-frontend', 'fzt-terminal', 'fzt-browser',
+  'fzt-automate', 'fzt-picker', 'my-homepage', 'fzt-showcase',
+])
+
+type GrammarStatus = 'pass' | 'pending' | 'fail'
+
+interface GrammarResult {
+  status: GrammarStatus
+  failures: string[]
+}
+
+function checkGrammar(
+  runs: Map<string, CIRun>,
+  versions: Map<string, PublishedVersion>,
+  deployed: Map<string, DeployedVersion>,
+): GrammarResult {
+  for (const run of runs.values()) {
+    if (!FZT_CASCADE_REPOS.has(run.repoName)) continue
+    if (run.status === 'in_progress' || run.status === 'queued') {
+      return { status: 'pending', failures: [] }
+    }
+  }
+
+  const failures: string[] = []
+  for (const [producer, consumer, field] of VERIFICATION_EDGES) {
+    const prodVer = versions.get(producer)?.version
+    const consVer = deployed.get(consumer)?.versions?.[field]
+
+    if (!prodVer) {
+      failures.push(`unknown: ${producer} has no release`)
+      continue
+    }
+    if (!consVer) {
+      failures.push(`unknown: ${consumer}.${field} missing (producer ${producer}@${prodVer})`)
+      continue
+    }
+    if (consVer !== prodVer) {
+      failures.push(`mismatch: ${producer}@${prodVer} ≠ ${consumer}.${field}@${consVer}`)
+    }
+  }
+
+  return { status: failures.length === 0 ? 'pass' : 'fail', failures }
+}
+
 function containerHeight(hasConsumed: boolean, hasProvided: boolean): number {
   let h = CASCADE_TITLE_HEIGHT
   if (hasConsumed) h += CASCADE_PKG_HEIGHT + CASCADE_PKG_PADDING * 2
@@ -322,6 +381,33 @@ function StatusDot({ status }: { status: ConnectionStatus }) {
   )
 }
 
+function GrammarBadge({ result }: { result: GrammarResult }) {
+  const { status, failures } = result
+  const color = status === 'pass' ? '#22c55e'
+    : status === 'pending' ? '#f59e0b'
+    : '#ef4444'
+  const label = status === 'pass' ? 'cascade ok'
+    : status === 'pending' ? 'cascade running'
+    : `cascade broken (${failures.length})`
+  const tooltip = status === 'pass'
+    ? 'All edges: producer release version equals consumer pinned version.'
+    : status === 'pending'
+    ? 'A cascade pipeline is in progress — re-checking once it completes.'
+    : failures.join('\n')
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-700 bg-slate-900/60 text-[10px] text-slate-300 cursor-help"
+      title={tooltip}
+    >
+      <span
+        className={`inline-block w-2 h-2 rounded-full ${status === 'pending' ? 'animate-pulse' : ''}`}
+        style={{ backgroundColor: color }}
+      />
+      {label}
+    </span>
+  )
+}
+
 export default function CIFztView() {
   const title = 'CI — fzt'
   const [watching, setWatching] = useState(true)
@@ -339,6 +425,11 @@ export default function CIFztView() {
   const { nodes, edges } = useMemo(
     () => buildLayout(runsByRepo, versions, deployed),
     [runsByRepo, versions, deployed],
+  )
+
+  const grammar = useMemo(
+    () => checkGrammar(runs, versions, deployed),
+    [runs, versions, deployed],
   )
 
   const hasActiveRuns = useMemo(() => {
@@ -360,9 +451,12 @@ export default function CIFztView() {
 
   return (
     <div className="w-screen h-screen bg-[#0f172a]">
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-4">
-        <h1 className="text-sm font-bold text-slate-300">{title}</h1>
-        <StatusDot status={status} />
+      <div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-2">
+        <div className="flex items-center gap-4">
+          <h1 className="text-sm font-bold text-slate-300">{title}</h1>
+          <StatusDot status={status} />
+        </div>
+        <GrammarBadge result={grammar} />
       </div>
 
       <div className="absolute top-4 right-16 z-10 flex items-center gap-3">
