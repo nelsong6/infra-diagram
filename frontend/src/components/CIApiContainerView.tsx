@@ -312,10 +312,27 @@ function GrammarBadge({ result }: { result: GrammarResult }) {
   )
 }
 
-export default function CIApiContainerView() {
-  const title = 'CI — api'
+interface CIApiContainerViewProps {
+  // When provided, skips SSE and renders the supplied data instead. Used by
+  // CIApiTestView to drive the dashboard with controllable fixture state.
+  injected?: {
+    runs: Map<string, CIRun>
+    packageVersions: Map<string, PublishedVersion>
+    deployed: Map<string, DeployedVersion>
+    versionErrors?: VersionErrors
+  }
+  titleOverride?: string
+}
+
+export default function CIApiContainerView({ injected, titleOverride }: CIApiContainerViewProps = {}) {
+  const title = titleOverride ?? 'CI — api'
   const [watching, setWatching] = useState(true)
-  const { runs, packageVersions, deployed, versionErrors, status } = useSSE(watching)
+  const sse = useSSE(watching && !injected)
+  const runs = injected?.runs ?? sse.runs
+  const packageVersions = injected?.packageVersions ?? sse.packageVersions
+  const deployed = injected?.deployed ?? sse.deployed
+  const versionErrors = injected?.versionErrors ?? sse.versionErrors
+  const status = injected ? 'connected' as const : sse.status
 
   const runsByRepo = useMemo(() => {
     const map = new Map<string, CIRun[]>()

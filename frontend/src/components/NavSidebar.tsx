@@ -82,6 +82,13 @@ const NAV_SECTIONS = [
       { path: '/emotions', label: 'Emotions' },
     ],
   },
+  {
+    label: 'Dev',
+    routes: [
+      { path: '/ci/fzt/test', label: 'fzt (test)' },
+      { path: '/ci/api/test', label: 'api (test)' },
+    ],
+  },
 ]
 
 export default function NavSidebar() {

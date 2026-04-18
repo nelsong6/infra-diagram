@@ -493,10 +493,26 @@ function GrammarBadge({ result }: { result: GrammarResult }) {
   )
 }
 
-export default function CIFztView() {
-  const title = 'CI — fzt'
+interface CIFztViewProps {
+  // When provided, skips SSE and renders the supplied data instead. Used by
+  // the test view (CIFztTestView) to drive the dashboard with controllable
+  // fixture state.
+  injected?: {
+    runs: Map<string, CIRun>
+    versions: Map<string, PublishedVersion>
+    deployed: Map<string, DeployedVersion>
+  }
+  titleOverride?: string
+}
+
+export default function CIFztView({ injected, titleOverride }: CIFztViewProps = {}) {
+  const title = titleOverride ?? 'CI — fzt'
   const [watching, setWatching] = useState(true)
-  const { runs, versions, deployed, status } = useSSE(watching)
+  const sse = useSSE(watching && !injected)
+  const runs = injected?.runs ?? sse.runs
+  const versions = injected?.versions ?? sse.versions
+  const deployed = injected?.deployed ?? sse.deployed
+  const status = injected ? 'connected' as const : sse.status
 
   const runsByRepo = useMemo(() => {
     const map = new Map<string, CIRun[]>()
