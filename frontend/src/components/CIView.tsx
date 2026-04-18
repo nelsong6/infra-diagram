@@ -184,6 +184,7 @@ export default function CIView({ title, repos, edges: edgeDefs }: CIViewProps) {
           defaultEdgeOptions={{ type: 'elk' }}
           nodesDraggable={false}
           nodesConnectable={false}
+          proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#1e293b" />
           <Controls className="!bg-slate-800 !border-slate-700 !rounded-lg [&>button]:!bg-slate-800 [&>button]:!border-slate-700 [&>button]:!text-slate-400 [&>button:hover]:!bg-slate-700" />
