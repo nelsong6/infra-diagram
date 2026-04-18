@@ -97,8 +97,8 @@ function TestControlPanel({
 
   return (
     <div
-      className="absolute top-4 right-4 z-20 bg-slate-900/95 border border-slate-700 rounded-lg shadow-xl text-slate-200"
-      style={{ maxHeight: 'calc(100vh - 2rem)', width: open ? 320 : 'auto', overflow: 'auto' }}
+      className="absolute top-20 left-4 z-20 bg-slate-900/95 border border-slate-700 rounded-lg shadow-xl text-slate-200"
+      style={{ maxHeight: 'calc(100vh - 6rem)', width: open ? 320 : 'auto', overflow: 'auto' }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700 sticky top-0 bg-slate-900/95">
         <span className="text-xs font-bold">test controls</span>
