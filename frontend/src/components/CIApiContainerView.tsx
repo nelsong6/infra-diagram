@@ -160,6 +160,94 @@ function StatusDot({ status }: { status: ConnectionStatus }) {
   )
 }
 
+// Repos whose pipeline activity counts as "the api cascade running" — any
+// host that publishes a route package + the api itself (which republishes
+// the lockfile-pinned versions on deploy).
+const API_CASCADE_REPOS = new Set<string>(['api', ...apiHostRepos])
+
+type GrammarStatus = 'pass' | 'pending' | 'fail'
+
+interface GrammarResult {
+  status: GrammarStatus
+  failures: string[]
+}
+
+// Mirrors the check-ci-api skill's three checks. Encodes `/ci/api`'s grammar
+// so the badge can answer "is this page broken?" at a glance:
+//   1. Every host repo has a published route package.
+//   2. The api's deployed version of each host's package equals the host's
+//      published version.
+//   3. Every deployed package has a host row on the dashboard (no orphans).
+function checkApiGrammar(
+  runs: Map<string, CIRun>,
+  packageVersions: Map<string, PublishedVersion>,
+  deployed: Map<string, DeployedVersion>,
+): GrammarResult {
+  for (const run of runs.values()) {
+    if (!API_CASCADE_REPOS.has(run.repoName)) continue
+    if (run.status === 'in_progress' || run.status === 'queued') {
+      return { status: 'pending', failures: [] }
+    }
+  }
+
+  const failures: string[] = []
+  const apiDeployed = deployed.get('api')
+
+  for (const host of apiHostRepos) {
+    const pkg = routePackageMap[host]
+    const published = packageVersions.get(host)?.version
+    const deployedVer = apiDeployed?.versions?.[pkg]
+
+    if (!published) {
+      failures.push(`unknown: ${host} has no published route package`)
+      continue
+    }
+    if (!deployedVer) {
+      failures.push(`unknown: api has not deployed ${pkg} (${host}@${published})`)
+      continue
+    }
+    if (deployedVer !== published) {
+      failures.push(`mismatch: ${host}@${published} ≠ api.${pkg}@${deployedVer}`)
+    }
+  }
+
+  const expectedPkgs = new Set(Object.values(routePackageMap))
+  for (const key of Object.keys(apiDeployed?.versions ?? {})) {
+    if (!expectedPkgs.has(key)) {
+      failures.push(`orphan: api deployed ${key} but no host row for it`)
+    }
+  }
+
+  return { status: failures.length === 0 ? 'pass' : 'fail', failures }
+}
+
+function GrammarBadge({ result }: { result: GrammarResult }) {
+  const { status, failures } = result
+  const color = status === 'pass' ? '#22c55e'
+    : status === 'pending' ? '#f59e0b'
+    : '#ef4444'
+  const label = status === 'pass' ? 'cascade ok'
+    : status === 'pending' ? 'cascade running'
+    : `cascade broken (${failures.length})`
+  const tooltip = status === 'pass'
+    ? 'Every host package is deployed at its published version with no orphans.'
+    : status === 'pending'
+    ? 'A cascade pipeline is in progress — re-checking once it completes.'
+    : failures.join('\n')
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-700 bg-slate-900/60 text-[10px] text-slate-300 cursor-help"
+      title={tooltip}
+    >
+      <span
+        className={`inline-block w-2 h-2 rounded-full ${status === 'pending' ? 'animate-pulse' : ''}`}
+        style={{ backgroundColor: color }}
+      />
+      {label}
+    </span>
+  )
+}
+
 export default function CIApiContainerView() {
   const title = 'CI — api'
   const [watching, setWatching] = useState(true)
@@ -177,6 +265,11 @@ export default function CIApiContainerView() {
   const { nodes, edges } = useMemo(
     () => buildLayout(apiHostRepos, runsByRepo, packageVersions, deployed, versionErrors),
     [runsByRepo, packageVersions, deployed, versionErrors],
+  )
+
+  const grammar = useMemo(
+    () => checkApiGrammar(runs, packageVersions, deployed),
+    [runs, packageVersions, deployed],
   )
 
   const hasActiveRuns = useMemo(() => {
@@ -198,9 +291,12 @@ export default function CIApiContainerView() {
 
   return (
     <div className="w-screen h-screen bg-[#0f172a]">
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-4">
-        <h1 className="text-sm font-bold text-slate-300">{title}</h1>
-        <StatusDot status={status} />
+      <div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-2">
+        <div className="flex items-center gap-4">
+          <h1 className="text-sm font-bold text-slate-300">{title}</h1>
+          <StatusDot status={status} />
+        </div>
+        <GrammarBadge result={grammar} />
       </div>
 
       <div className="absolute top-4 right-16 z-10 flex items-center gap-3">
