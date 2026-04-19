@@ -43,9 +43,9 @@ tofu/             OpenTofu IaC — SWA (Free), DNS CNAME (diagrams.romaine.life)
 
 CI dashboard uses ELK (elkjs) for automatic node positioning and edge routing. Nodes are bottom-aligned per layer with dynamic heights. Webhook events from the `romaine-life-app` GitHub App flow through `api.romaine.life/ci/webhook` → SSE → browser. Cold start backfills from the GitHub API.
 
-## Route Package
+## Routes (`backend/routes/`)
 
-`packages/routes/` publishes `@nelsong6/diagrams-routes` to GitHub Packages. Mounted at `/ci` in the shared API. Entry point: `index.js` re-exports `createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey, installedPackages })`.
+`createCIRoutes({ webhookSecret, githubAppId, githubAppPrivateKey, installedPackages })` returns an Express Router mounted at `/ci/*` in this app's own backend. Handles GitHub webhook events + SSE stream for the CI dashboard.
 
 All state is in-memory (lost on API restart). Five Maps: `runs` (pipeline runs keyed by `repo/runId`), `versions` (latest GitHub release per repo), `packageVersions` (latest published route package version per repo), `deployedVersions` (live deployed version per repo), `versionErrors` (backfill failures per repo). Runs older than 2 hours are pruned on each webhook event.
 
@@ -77,7 +77,7 @@ Both use shared Promises to prevent concurrent SSE connections from racing. The 
 
 `fzt`, `fzt-frontend`, `fzt-terminal`, `fzt-browser`, `fzt-automate`, `fzt-picker`, `my-homepage`, `fzt-showcase`, `kill-me`, `plant-agent`, `investing`, `house-hunt`, `diagrams`, `api`, `infra-bootstrap`, `landing-page`, `emotions-mcp`, `llm-explorer`.
 
-When a new app joins the shared api (route package), two lists must be updated: `REPOS` + `ROUTE_PACKAGES` in `packages/routes/ci.js` (for backfill), AND `apiHostRepos` + `routePackageMap` + `overviewRepos` + `overviewEdges` in `frontend/src/data/ci-views.ts` (for dashboard rendering). A deployed package without a host row on `/ci/api` is a silent orphan caught by the `check-ci-api` skill.
+When a new app joins the dashboard, two lists must be updated: `REPOS` + `ROUTE_PACKAGES` in `backend/routes/ci.js` (for backfill), AND `apiHostRepos` + `routePackageMap` + `overviewRepos` + `overviewEdges` in `frontend/src/data/ci-views.ts` (for dashboard rendering). A deployed package without a host row on `/ci/api` is a silent orphan caught by the `check-ci-api` skill.
 
 `SITE_URLS` in `ci.js` is separate — only include a repo there if it actually serves `/version.json`. Sites that don't (like `landing-page`) will produce persistent `version error` entries on the dashboard if included.
 

@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createCIRoutes } from '@nelsong6/diagrams-routes';
+import { createCIRoutes } from './routes/index.js';
 import { fetchConfig } from './config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
