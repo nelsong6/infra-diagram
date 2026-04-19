@@ -1,0 +1,16 @@
+.git
+.github
+tofu
+k8s
+packages
+node_modules
+backend/node_modules
+frontend/node_modules
+frontend/dist
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+*.md
+.gitignore
+.npmrc

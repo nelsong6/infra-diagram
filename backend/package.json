@@ -1,0 +1,27 @@
+{
+  "name": "@nelsong6/diagrams-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Per-app backend for diagrams.romaine.life — hosts /ci/* (webhook receiver, SSE stream, version tracking)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@azure/app-configuration": "^1.11.0",
+    "@azure/identity": "^4.0.0",
+    "@azure/keyvault-secrets": "^4.11.1",
+    "@nelsong6/diagrams-routes": "^0.0.8",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
