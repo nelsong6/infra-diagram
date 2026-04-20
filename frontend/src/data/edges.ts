@@ -19,56 +19,14 @@ export const edges: InfraEdge[] = [
     }),
   ),
 
-  // ── Apps with backends → Shared API ─────────────────────────
-  ...['plant-agent', 'kill-me', 'investing', 'my-homepage'].map((app) => ({
-    id: `${app}-api`,
+  // ── Apps → Cosmos DB ────────────────────────────────────────
+  ...['plant-agent', 'kill-me', 'investing', 'my-homepage', 'lights'].map((app) => ({
+    id: `${app}-cosmos`,
     source: app,
-    target: 'api',
+    target: 'cosmos',
     style: APP_STYLE,
     animated: true,
   })),
-
-  // ── Shared API → Container App Environment ──────────────────
-  {
-    id: 'api-container-env',
-    source: 'api',
-    target: 'container-env',
-    style: SHARED_STYLE,
-  },
-
-  // ── Shared API → Cosmos DB ──────────────────────────────────
-  {
-    id: 'api-cosmos',
-    source: 'api',
-    target: 'cosmos',
-    style: SHARED_STYLE,
-    animated: true,
-  },
-
-  // ── Lights → Cosmos DB (direct, future use) ─────────────────
-  {
-    id: 'lights-cosmos',
-    source: 'lights',
-    target: 'cosmos',
-    style: APP_STYLE,
-    label: 'reserved',
-  },
-
-  // ── Shared API → Key Vault ──────────────────────────────────
-  {
-    id: 'api-keyvault',
-    source: 'api',
-    target: 'keyvault',
-    style: SHARED_STYLE,
-  },
-
-  // ── Shared API → App Configuration ──────────────────────────
-  {
-    id: 'api-appconfig',
-    source: 'api',
-    target: 'appconfig',
-    style: SHARED_STYLE,
-  },
 
   // ── Key Vault → Managed Identity ────────────────────────────
   {
@@ -87,14 +45,6 @@ export const edges: InfraEdge[] = [
   })),
 
   // ── my-homepage device auth ────────────────────────────────
-  {
-    id: 'client-devices-api',
-    source: 'client-devices',
-    target: 'api',
-    style: EXTERNAL_STYLE,
-    animated: true,
-    label: 'auth',
-  },
   {
     id: 'client-devices-homepage',
     source: 'client-devices',

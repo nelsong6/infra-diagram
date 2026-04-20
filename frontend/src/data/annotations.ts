@@ -93,16 +93,6 @@ Uses @tanstack/react-virtual and react-table for performant rendering of large Q
 Created and managed by infra-bootstrap via OpenTofu.`,
   },
 
-  api: {
-    nodeId: 'api',
-    title: 'Shared API (api.romaine.life)',
-    body: `A consolidated Express.js backend running as an always-on Azure Container App (0.25 vCPU / 0.5 Gi). This eliminates the 30+ second cold starts that plague consumption-plan functions.
-
-Each app mounts its route package under a path prefix: /plant, /workout, /homepage, /investing. Two auth flows: MSAL.js redirect (most apps) and device-based challenge/response (my-homepage). Both produce a self-signed JWT with 7-day expiry.
-
-The decision to consolidate was driven by cost — a single always-on container is cheaper than multiple consumption-plan backends, and the latency improvement is dramatic.`,
-  },
-
   cosmos: {
     nodeId: 'cosmos',
     title: 'Azure Cosmos DB',
@@ -133,12 +123,6 @@ All containers use /userId as the partition key. The free tier provides 1000 RU/
     nodeId: 'managed-identity',
     title: 'Managed Identity',
     body: `infra-shared-identity — a user-assigned managed identity with pre-assigned RBAC roles for Key Vault, Cosmos DB, App Configuration, and Blob Storage. Eliminates the need for connection strings or API keys in the Container App.`,
-  },
-
-  'container-env': {
-    nodeId: 'container-env',
-    title: 'Container App Environment',
-    body: `The Azure Container App Environment that hosts the shared API. Provides networking, logging, and scaling infrastructure. Currently runs a single container app (the shared API).`,
   },
 
   entra: {

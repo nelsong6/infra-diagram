@@ -120,31 +120,6 @@ export const nodes: InfraNode[] = [
     },
   },
   {
-    id: 'api',
-    type: 'infra',
-    position: { x: COL.midLeft, y: ROW.api },
-    data: {
-      label: 'Shared API',
-      description: 'Always-on Express backend on Container App (api.romaine.life). Mounts per-app route packages.',
-      icon: 'Server',
-      category: 'shared',
-      apps: ['plant-agent', 'kill-me', 'investing', 'my-homepage'],
-      subdomain: 'api.romaine.life',
-    },
-  },
-  {
-    id: 'container-env',
-    type: 'infra',
-    position: { x: COL.midLeft, y: ROW.data },
-    data: {
-      label: 'Container App Environment',
-      description: 'Hosts the shared API Container App. Always-on: 0.25 vCPU / 0.5 Gi.',
-      icon: 'Container',
-      category: 'shared',
-      apps: [],
-    },
-  },
-  {
     id: 'cosmos',
     type: 'infra',
     position: { x: COL.center, y: ROW.data },

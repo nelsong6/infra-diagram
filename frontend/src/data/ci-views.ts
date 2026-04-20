@@ -7,7 +7,7 @@ export interface DispatchEdge {
 // Infrastructure repos with tofu/ directories
 
 export const tofuRepos = [
-  'infra-bootstrap', 'api', 'diagrams',
+  'infra-bootstrap', 'diagrams',
   'house-hunt', 'landing-page', 'emotions-mcp',
 ]
 
@@ -19,7 +19,7 @@ export const overviewRepos = [
   'fzt', 'fzt-frontend', 'fzt-terminal', 'fzt-browser', 'fzt-automate',
   'my-homepage', 'fzt-showcase', 'fzt-picker',
   'kill-me', 'plant-agent', 'investing', 'house-hunt',
-  'diagrams', 'api', 'llm-explorer',
+  'diagrams', 'llm-explorer',
   'infra-bootstrap', 'landing-page', 'emotions-mcp',
 ]
 
@@ -31,12 +31,4 @@ export const overviewEdges: DispatchEdge[] = [
   { source: 'fzt-terminal', target: 'fzt-picker' },
   { source: 'fzt-browser', target: 'my-homepage' },
   { source: 'fzt-browser', target: 'fzt-showcase' },
-  { source: 'fzt-terminal', target: 'api' },
-  { source: 'my-homepage', target: 'api' },
-  { source: 'kill-me', target: 'api' },
-  { source: 'plant-agent', target: 'api' },
-  { source: 'investing', target: 'api' },
-  { source: 'house-hunt', target: 'api' },
-  { source: 'diagrams', target: 'api' },
-  { source: 'llm-explorer', target: 'api' },
 ]

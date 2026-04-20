@@ -88,54 +88,6 @@ export const pipelineNodes: PipelineNode[] = [
       repo: 'my-homepage',
     },
   },
-  // ── api repo ──────────────────────────────────────────────────
-  {
-    id: 'api-repo',
-    type: 'pipeline',
-    position: { x: COL.api, y: ROW.header },
-    data: {
-      label: 'api',
-      description: 'Shared API gateway (Container App)',
-      category: 'repo',
-    },
-  },
-  {
-    id: 'api-build',
-    type: 'pipeline',
-    position: { x: COL.api, y: ROW.w1 },
-    data: {
-      label: 'Phase 1 — CI Build',
-      description: 'npm ci (from lockfile!), run tests, build + push Docker image to GHCR',
-      trigger: 'push to main, repository_dispatch: dependency-updated',
-      category: 'workflow',
-      repo: 'api',
-    },
-  },
-  {
-    id: 'api-deploy',
-    type: 'pipeline',
-    position: { x: COL.api, y: ROW.w2 },
-    data: {
-      label: 'Deploy',
-      description: 'Updates Container App with new image, binds custom domain, verifies health',
-      trigger: 'workflow_run: Phase 1 completes',
-      category: 'workflow',
-      repo: 'api',
-    },
-  },
-  {
-    id: 'api-tofu',
-    type: 'pipeline',
-    position: { x: COL.api, y: ROW.w3 },
-    data: {
-      label: 'Infrastructure',
-      description: 'OpenTofu plan + apply for Container App, identity, DNS',
-      trigger: 'push to tofu/**',
-      category: 'workflow',
-      repo: 'api',
-    },
-  },
-
   // ── fzt-showcase repo ─────────────────────────────────────────
   {
     id: 'showcase-repo',
@@ -173,15 +125,4 @@ export const pipelineNodes: PipelineNode[] = [
     },
   },
 
-  // ── The gap — lockfile problem ────────────────────────────────
-  {
-    id: 'lockfile-gap',
-    type: 'pipeline',
-    position: { x: COL.api + 30, y: ROW.w4 },
-    data: {
-      label: 'LOCKFILE GAP',
-      description: 'API receives dependency-updated dispatch but npm ci uses the OLD lockfile. The new routes version is published but never installed. Requires manual lockfile update + push.',
-      category: 'issue',
-    },
-  },
 ]

@@ -1,9 +1,7 @@
 import type { Edge } from '@xyflow/react'
 
 const DISPATCH = { stroke: '#f59e0b', strokeWidth: 2.5 }    // amber — cross-repo dispatch
-const INTERNAL = { stroke: '#38bdf8', strokeWidth: 1.5 }    // blue — within-repo flow
 const ARTIFACT = { stroke: '#a78bfa', strokeWidth: 1.5 }    // purple — produces/consumes artifact
-const BROKEN = { stroke: '#ef4444', strokeWidth: 3, strokeDasharray: '8 4' } // red dashed — broken dependency
 
 export const pipelineEdges: Edge[] = [
   // ── fzt internal flow ─────────────────────────────────────────
@@ -34,16 +32,6 @@ export const pipelineEdges: Edge[] = [
     label: 'downloads assets',
   },
 
-  // ── api internal flow ─────────────────────────────────────────
-  {
-    id: 'api-build-to-deploy',
-    source: 'api-build',
-    target: 'api-deploy',
-    style: INTERNAL,
-    animated: true,
-    label: 'workflow_run',
-  },
-
   // ── fzt → fzt-showcase (dispatch) ─────────────────────────────
   {
     id: 'fzt-dispatch-showcase',
@@ -63,12 +51,4 @@ export const pipelineEdges: Edge[] = [
     label: 'downloads assets',
   },
 
-  // ── lockfile gap indicator ────────────────────────────────────
-  {
-    id: 'api-build-to-gap',
-    source: 'api-build',
-    target: 'lockfile-gap',
-    style: BROKEN,
-    label: 'never updates lockfile',
-  },
 ]

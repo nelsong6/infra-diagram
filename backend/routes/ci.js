@@ -5,7 +5,7 @@ const REPOS = [
   'fzt', 'fzt-frontend', 'fzt-terminal', 'fzt-browser', 'fzt-automate',
   'my-homepage', 'fzt-showcase', 'fzt-picker',
   'kill-me', 'plant-agent', 'investing', 'house-hunt',
-  'diagrams', 'api', 'infra-bootstrap',
+  'diagrams', 'infra-bootstrap',
   'landing-page', 'emotions-mcp', 'llm-explorer',
 ];
 

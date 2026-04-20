@@ -35,10 +35,10 @@ tofu/             OpenTofu IaC — SWA (Free), DNS CNAME (diagrams.romaine.life)
 
 - **`/`** — Main infrastructure diagram (React Flow) showing apps, shared infra, external services, CI/CD
 - **`/:app`** — Filtered view highlighting a single app's path through infrastructure
-- **`/pipelines`** — Pipeline dependency diagram showing cross-repo CI/CD chains (fzt → my-homepage/fzt-showcase → api) with the dispatch/artifact flow and the lockfile gap issue node
+- **`/pipelines`** — Pipeline dependency diagram showing cross-repo CI/CD chains (fzt → my-homepage / fzt-showcase) with the dispatch/artifact flow
 - **`/ci`** — Live CI dashboard (all repos). Push-based via GitHub App webhooks + SSE
 - **`/ci/fzt`** — fzt asset cascade post-split. Direct go.mod edges: `fzt` → `fzt-frontend`/`fzt-terminal`/`fzt-browser`/`fzt-automate`/`fzt-picker` (every consumer direct-imports `fzt`), `fzt-frontend` → `fzt-terminal`, `fzt-terminal` → `fzt-browser`/`fzt-automate`/`fzt-picker`. Release-artifact edges: `fzt-browser` → `my-homepage`/`fzt-showcase` (web bundle downloaded via `gh release download` in each consumer's deploy workflow, not a go.mod require). Horizontal layer-to-layer flow; packages stacked vertically inside each container. The `check-ci` skill encodes this graph for API-side verification. A small cascade grammar badge under the title mirrors that skill — green when every edge has matching producer/consumer versions, yellow if any cascade pipeline is in progress, red on unknown/mismatch with the failing edges listed in a hover tooltip.
-- **`/ci/tofu`** — Infrastructure repos: infra-bootstrap, api, diagrams, house-hunt, landing-page, emotions-mcp
+- **`/ci/tofu`** — Infrastructure repos: infra-bootstrap, diagrams, house-hunt, landing-page, emotions-mcp
 
 CI dashboard uses ELK (elkjs) for automatic node positioning and edge routing. Nodes are bottom-aligned per layer with dynamic heights. Webhook events from the `romaine-life-app` GitHub App flow through `api.romaine.life/ci/webhook` → SSE → browser. Cold start backfills from the GitHub API.
 
@@ -73,7 +73,7 @@ Both use shared Promises to prevent concurrent SSE connections from racing.
 
 ### Monitored repos
 
-`fzt`, `fzt-frontend`, `fzt-terminal`, `fzt-browser`, `fzt-automate`, `fzt-picker`, `my-homepage`, `fzt-showcase`, `kill-me`, `plant-agent`, `investing`, `house-hunt`, `diagrams`, `api`, `infra-bootstrap`, `landing-page`, `emotions-mcp`, `llm-explorer`.
+`fzt`, `fzt-frontend`, `fzt-terminal`, `fzt-browser`, `fzt-automate`, `fzt-picker`, `my-homepage`, `fzt-showcase`, `kill-me`, `plant-agent`, `investing`, `house-hunt`, `diagrams`, `infra-bootstrap`, `landing-page`, `emotions-mcp`, `llm-explorer`.
 
 When a new app joins the dashboard, update `REPOS` in `backend/routes/ci.js` (for run backfill) and `overviewRepos` + `overviewEdges` in `frontend/src/data/ci-views.ts` (for dashboard rendering).
 
