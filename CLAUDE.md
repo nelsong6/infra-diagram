@@ -40,7 +40,7 @@ tofu/             OpenTofu IaC — SWA (Free), DNS CNAME (diagrams.romaine.life)
 - **`/ci/fzt`** — fzt asset cascade post-split. Direct go.mod edges: `fzt` → `fzt-frontend`/`fzt-terminal`/`fzt-browser`/`fzt-automate`/`fzt-picker` (every consumer direct-imports `fzt`), `fzt-frontend` → `fzt-terminal`, `fzt-terminal` → `fzt-browser`/`fzt-automate`/`fzt-picker`. Release-artifact edges: `fzt-browser` → `my-homepage`/`fzt-showcase` (web bundle downloaded via `gh release download` in each consumer's deploy workflow, not a go.mod require). Horizontal layer-to-layer flow; packages stacked vertically inside each container. The `check-ci` skill encodes this graph for API-side verification. A small cascade grammar badge under the title mirrors that skill — green when every edge has matching producer/consumer versions, yellow if any cascade pipeline is in progress, red on unknown/mismatch with the failing edges listed in a hover tooltip.
 - **`/ci/tofu`** — Infrastructure repos: infra-bootstrap, diagrams, house-hunt, landing-page, emotions-mcp
 
-CI dashboard uses ELK (elkjs) for automatic node positioning and edge routing. Nodes are bottom-aligned per layer with dynamic heights. Webhook events from the `romaine-life-app` GitHub App flow through `api.romaine.life/ci/webhook` → SSE → browser. Cold start backfills from the GitHub API.
+CI dashboard uses ELK (elkjs) for automatic node positioning and edge routing. Nodes are bottom-aligned per layer with dynamic heights. Webhook events from the `romaine-life-app` GitHub App flow through `diagrams.romaine.life/ci/webhook` → SSE → browser. Cold start backfills from the GitHub API.
 
 ## Routes (`backend/routes/`)
 
