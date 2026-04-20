@@ -11,4 +11,4 @@ resources:
 images:
 - name: romainecr.azurecr.io/diagrams
   newName: romainecr.azurecr.io/diagrams
-  newTag: ed9a4b1
+  newTag: 6c645ab
