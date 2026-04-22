@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { CIRun, PublishedVersion, DeployedVersion, VersionErrors, ConnectionStatus } from '../types/ci'
+import { getApiBase } from '../lib/apiBase'
 
-// Same-origin — backend serves the frontend and /ci/* on the same pod.
-// Dev: backend on :3000, Vite dev server on :5505; cross-origin EventSource
-// needs an absolute URL so the browser doesn't hit Vite's HMR endpoint.
-const API_BASE = import.meta.env.DEV ? 'http://localhost:3000' : ''
+// Same-origin in production. For local preview or dev, the backend stays on
+// :3000 while the frontend can be served from :5505.
+const API_BASE = getApiBase()
 
 const SSE_URL = `${API_BASE}/ci/events`
 

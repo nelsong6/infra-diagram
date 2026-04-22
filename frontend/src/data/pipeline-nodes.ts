@@ -1,11 +1,16 @@
 import type { Node } from '@xyflow/react'
 
+export type PipelineNodeStatus = 'idle' | 'queued' | 'running' | 'success' | 'blocked'
+
 export type PipelineNodeData = {
   label: string
   description: string
   repo?: string
   trigger?: string
   category: 'repo' | 'workflow' | 'artifact' | 'issue'
+  status?: PipelineNodeStatus
+  statusLabel?: string
+  statusDetail?: string
 }
 
 export type PipelineNode = Node<PipelineNodeData>

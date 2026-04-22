@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createCIRoutes } from './routes/index.js';
+import { createCIRoutes, createCodexQueueRoutes } from './routes/index.js';
 import { fetchConfig } from './config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +41,9 @@ async function start() {
     webhookSecret: config.githubWebhookSecret,
     githubAppId: config.githubAppId,
     githubAppPrivateKey: config.githubAppPrivateKey,
+  }));
+  app.use('/ci', createCodexQueueRoutes({
+    eventJwtSecret: config.codexQueueJwtSecret,
   }));
 
   app.use(express.static(FRONTEND_DIR));
