@@ -79,6 +79,7 @@ const NAV_SECTIONS = [
   {
     label: 'Other',
     routes: [
+      { path: '/spirelens', label: 'SpireLens' },
       { path: '/certs', label: 'Cert Concepts' },
       { path: '/emotions', label: 'Emotions' },
     ],
